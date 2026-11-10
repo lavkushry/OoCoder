@@ -54,3 +54,23 @@ After each entry:
 - **Source:** status Today vs rate counter
 - **Rule:** Do not count candidate updatedAt (bumped by sync/monitor) toward maxPrsPerDay; use getRateCount(prs) so continuous Linux watch waves are not false-capped.
 - **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
+
+### campaign-ops — Surgical gh PRs when model key missing
+- **Source:** wave to 150 without CURSOR_API_KEY
+- **Rule:** When CURSOR_API_KEY/GROK_API_KEY are unset, campaign run fail-fasts; continue the wave with surgical gh docs/code PRs and campaign sync so Linux watch can still monitor toward targetPrs.
+- **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
+
+### duckdb/duckdb-web — bundle docs; do not spray settings
+- **Source:** duckdb/duckdb-web#7801 (@szarnyasg)
+- **Rule:** Bundle related DuckDB doc edits into one PR. Do not open one setting per PR. Maintainers close unsolicited "Document X" setting PRs (no issue, not requested) because they burn CI.
+- **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
+
+### duckdb/duckdb-web — TPC-H dbgen warning is obsolete in 2.0
+- **Source:** duckdb/duckdb-web#7726 (@szarnyasg)
+- **Rule:** Do not rewrite the TPC-H dbgen compliance warning. It no longer applies from DuckDB 2.0.
+- **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
+
+### duckdb/duckdb-web — do not reopen closed agent docs
+- **Source:** duckdb/duckdb-web#7712 (@szarnyasg)
+- **Rule:** If a DuckDB maintainer closes a pull request, leave it closed. Do not send another spray of agent-written docs for review.
+- **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`

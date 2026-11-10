@@ -489,7 +489,18 @@ const BOT_LOGINS = new Set([
   "dependabot[bot]",
   "cursor",
   "cursor[bot]",
+  "clickhouse-gh",
+  "clickhouse-gh[bot]",
 ]);
+
+function isAutomationComment(body: string): boolean {
+  const trimmed = body.trimStart();
+  return (
+    trimmed.startsWith("<!-- CI automatic comment") ||
+    trimmed.startsWith("<!-- codex-pull-request-review-summary") ||
+    trimmed.startsWith("<!-- codex-review-state")
+  );
+}
 
 function isBotLogin(login: string): boolean {
   const lower = login.toLowerCase();
@@ -644,7 +655,9 @@ export async function monitorCampaignPrs(
       ) {
         continue;
       }
-      const body = (comment.body ?? "").trim().replace(/\s+/g, " ").slice(0, 160);
+      const rawBody = comment.body ?? "";
+      if (isAutomationComment(rawBody)) continue;
+      const body = rawBody.trim().replace(/\s+/g, " ").slice(0, 160);
       if (!body) continue;
       attention.push("human_comment");
       notes.push(`@${login}: ${body}`);
