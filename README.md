@@ -1,163 +1,66 @@
-# OoCoder
+# oss-agent
 
-Autonomous open-source contribution agent for Linux (and macOS).
+Self-hosted autonomous agent that contributes to open-source projects like a careful human. **The agent prepares; you approve every outward action.**
 
-OoCoder **discovers** suitable GitHub issues, **joins discussions** with clear AI disclosure, **implements** fixes with the Cursor SDK on your machine, **opens PRs** via `gh`, and **iterates** on review/CI through a Cursor Agent SDK GitHub bot.
+Operational model combines:
 
-It reuses the proven OSS-agent pipeline (discover → isolate → implement → verify → PR → iterate) instead of inventing a new coding loop.
+- [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox)-inspired **sandbox engine** (session lifecycle, file/command APIs, credential vault, egress policy)
+- [Khoj](https://github.com/khoj-ai/khoj) + [last30days](https://github.com/mvanhorn/last30days-skill)-inspired **project research** before every action (local corpus + engagement-scored signals)
+- [n8n](https://github.com/n8n-io/n8n)-inspired **workflow engine** (nodes, connections, IF/wait, item data) driving the contribution graph
+- [Paperclip](https://github.com/paperclipai/paperclip)-style **pre-contribution analysis** (goal alignment, budget, governance, readiness) before any coding work
+- [SuperPlane](https://github.com/superplanehq/superplane)’s **software factory** board: **Backlog → Running → Review → Done**
+- [Strix](https://github.com/usestrix/strix)-inspired **code quality / security analysis** (severity + SARIF) on the contribution diff before PR draft
 
-## Architecture
+Default workflow main path: `project_research → analyze → await_analysis_approval → intake → reproduce → implement → verify → quality_analysis → await_approval` (research also re-runs before each step and before gateway enqueue).
 
-```
-OoCoder/
-  configs/                 # allowlist + policy (safety rails)
-  packages/core/           # shared pipeline (state, gh/git, Cursor SDK)
-  packages/cli/            # `oocoder` — agent on your machine
-  packages/agent/          # Agent SDK bot (schedule + GitHub follow-ups)
-```
+Spec: [docs/PRD_AND_DESIGN.md](docs/PRD_AND_DESIGN.md) · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Runbook: [docs/OPERATOR_RUNBOOK.md](docs/OPERATOR_RUNBOOK.md)
 
-| Trigger | What runs |
-| --- | --- |
-| `oocoder discover/work` | Local CLI orchestrator + Cursor SDK |
-| Agent SDK schedule | Hourly discover → optional auto-contribute |
-| GitHub channel | Review comments / CI failures on watched repos |
+## Requirements
 
-## Prerequisites
+- Python 3.12+
+- Linux recommended for rootless Podman; default OpenSandbox local runtime uses Fake isolation offline (`prefer_podman=True` when Podman is available)
+- Optional: GitHub App credentials (gateway only)
 
-- Node.js **22.13+**
-- `git` and GitHub CLI (`gh auth login`)
-- Cursor API key: `export CURSOR_API_KEY=...`
-- (Agent bot) `cd packages/agent && npx agent-sdk login`
-- (Agent bot) GitHub connected in [Cursor Dashboard](https://cursor.com/dashboard)
-
-## Quick start (CLI)
+## Quick start
 
 ```bash
-pnpm install
-pnpm --filter @oocoder/core build
-pnpm --filter @oocoder/cli build
-
-# Create ~/.oocoder and check auth
-pnpm --filter @oocoder/cli exec node ./dist/bin.js init
-
-# Allowlist a repo you may fork/contribute to
-# edit ~/.oocoder/allowlist.yaml  →  repos: ["owner/repo"]
-
-# Find candidates
-pnpm --filter @oocoder/cli exec node ./dist/bin.js discover --limit 10
-
-# Dry-run a contribution (no Cursor call / no PR)
-pnpm --filter @oocoder/cli exec node ./dist/bin.js work \
-  https://github.com/owner/repo/issues/123 --dry-run
-
-# Real run on your Linux box (local Cursor agent → quality gates → gh pr)
-export CURSOR_API_KEY=...
-pnpm --filter @oocoder/cli exec node ./dist/bin.js work \
-  https://github.com/owner/repo/issues/123
+make setup
+make test
+make lint
+make demo    # offline end-to-end on fixtures (no outward network writes)
+make eval    # writes docs/EVAL_REPORT.md
 ```
 
-Optional cloud path (Cursor-hosted VM + `autoCreatePR`):
+Factory board + approval queue:
 
 ```bash
-pnpm --filter @oocoder/cli exec node ./dist/bin.js work <issue-url> --runtime cloud
+oss-agent factory board
+oss-agent factory close <work_order_id> --result completed
+oss-agent queue
+oss-agent approve <draft_id> --by sponsor
+oss-agent kill-switch --enable
 ```
 
-### CLI commands
-
-| Command | Purpose |
-| --- | --- |
-| `init` | Create `~/.oocoder`, copy configs, auth check |
-| `discover` | Search issues by labels / language |
-| `discuss` | Post investigating comment + disclosure |
-| `work` | Implement + quality gate + PR |
-| `status` | Candidates + policy snapshot |
-| `daemon` | Discover → work top N allowlisted issues |
-
-## Safety rails (required for full autonomy)
-
-Configured in [`configs/policy.yaml`](configs/policy.yaml) / `~/.oocoder/policy.yaml`:
-
-- **Allowlist only** — [`configs/allowlist.yaml`](configs/allowlist.yaml)
-- **AI disclosure** on comments and PR bodies
-- **Quality caps** — max files / lines changed
-- **Rate limits** — issues / PRs / comments per day
-- No force-push; no commits to `main` / `master` / `develop`
-- `--dry-run` and `--skip-pr` for safe testing
-
-## Agent SDK bot
+Local UI (localhost only) — factory board + queue:
 
 ```bash
-cd packages/agent
-npx agent-sdk validate --dir .
-npx agent-sdk login
-export OOCODER_GITHUB_REPOS=owner/repo   # watched repos for follow-ups
-npx agent-sdk serve --dir . --mode single --dev
-# Playground: http://127.0.0.1:3000/playground
+make run
+# open http://127.0.0.1:8787/
 ```
 
-Tools: `discover_issues`, `post_issue_comment`, `start_contribution`, `inspect_pr`, `reply_to_review`.
+## Safety (enforced in code)
 
-Schedule `hourly-discover` does **not** auto-fire under `--dev`. Dispatch manually:
+1. Only `gateway/` holds GitHub write credentials
+2. Outward actions are drafts; default requires approval
+3. Per-project rate limits in the gateway
+4. AI disclosure injected by the gateway
+5. Banned/unclear AI policy → refuse
+6. Repo content is untrusted data
+7. Sandbox never sees tokens/keys; default-deny network
+8. Evidence from sandbox capture only
+9. Global kill switch
+10. Append-only audit log
 
-```bash
-curl -X POST http://127.0.0.1:3000/agent/v1/dev/schedules/hourly-discover
-```
+## Layout
 
-Smoke eval (needs credentials for a live model turn):
-
-```bash
-cd packages/agent && npx agent-sdk eval --dir .
-```
-
-## Portfolio demo script
-
-1. `oocoder init` and add one sandbox / friendly repo to the allowlist  
-2. `oocoder discover --limit 5` — show ranked candidates  
-3. `oocoder discuss <issue> --dry-run` — show disclosure comment  
-4. `oocoder work <issue> --dry-run` — show worktree preparation  
-5. `oocoder work <issue>` — open a real PR, paste the URL  
-6. (Optional) Agent playground: ask it to discover and dry-run contribute  
-
-## v0.2 — CI repair and stats
-
-`oocoder fixci` looks at pull requests this agent opened. When GitHub Actions (or a legacy commit status) is red on an `oocoder/*` branch in your fork, it downloads diagnostics, asks Cursor for a minimal repair, runs tests, and pushes a normal commit to the **same branch**. It never force-pushes. After two failed attempts it drafts a stand-down comment and stores a lesson.
-
-```bash
-pnpm oocoder fixci --dry-run
-pnpm oocoder fixci --pr https://github.com/owner/repo/pull/42
-pnpm oocoder dashboard --no-refresh --out stats.html
-```
-
-Job logs need a GitHub token with **Actions: Read**. Without that scope, repair falls back to check annotations and combined status and logs `ci logs unavailable (token lacks Actions:Read)`.
-
-Policy keys (defaults apply if an older `~/.oocoder/policy.yaml` omits them):
-
-```yaml
-ciFix:
-  enabled: true
-  maxAttemptsPerPr: 2
-  maxFixesPerRun: 1
-  minMinutesAfterPush: 10
-  maxFilesTouched: 3
-  maxLogBytes: 60000
-telemetry:
-  enabled: true
-dashboard:
-  refreshPrStates: true
-  historyDays: 30
-```
-
-`oocoder daemon` runs one CI repair pass after discovery. `dashboard` writes a single offline `stats.html` (KPI, timeline, funnel, repos, PR lifecycle, CI fixes, friction, lessons).
-
-## Environment
-
-| Variable | Purpose |
-| --- | --- |
-| `CURSOR_API_KEY` | Cursor SDK coding runs |
-| `OOCODER_HOME` | Override state dir (default `~/.oocoder`) |
-| `OOCODER_GITHUB_REPOS` | Comma-separated repos for Agent SDK GitHub channel |
-| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Optional commit identity (defaults to OoCoder) |
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+See [AGENTS.md](AGENTS.md). Legacy TypeScript OoCoder remains under `packages/` and is not the Definition of Done target.

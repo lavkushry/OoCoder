@@ -1,0 +1,20 @@
+[Unit]
+Description=oss-agent orchestrator
+After=network.target
+
+[Service]
+Type=simple
+User=oss-agent
+Group=oss-agent
+WorkingDirectory=/var/lib/oss-agent
+Environment=OSS_AGENT_DATABASE_URL=sqlite:////var/lib/oss-agent/oss_agent.db
+EnvironmentFile=-/etc/oss-agent/orchestrator.env
+ExecStart=/var/lib/oss-agent/venv/bin/oss-agent serve --host 127.0.0.1 --port 8787
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oss-agent /var/log/oss-agent
+
+[Install]
+WantedBy=multi-user.target

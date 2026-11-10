@@ -1,0 +1,21 @@
+[Unit]
+Description=oss-agent GitHub gateway (write path)
+After=network.target
+
+[Service]
+Type=simple
+User=oss-agent
+Group=oss-agent
+WorkingDirectory=/var/lib/oss-agent
+# Credentials file must be root-owned, mode 0400, readable by this service only.
+Environment=OSS_AGENT_GITHUB_CREDENTIALS_FILE=/etc/oss-agent/github_app.env
+EnvironmentFile=-/etc/oss-agent/gateway.env
+ExecStart=/var/lib/oss-agent/venv/bin/python -m oss_agent.cli.main queue
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oss-agent /var/log/oss-agent
+
+[Install]
+WantedBy=multi-user.target

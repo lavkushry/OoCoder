@@ -1,0 +1,30 @@
+[
+  {
+    "number": 1,
+    "title": "Typo in README",
+    "body": "Fix spelling of 'recieve' in README.",
+    "labels": ["documentation", "good first issue"],
+    "assignees": [],
+    "comments": 0,
+    "html_url": "https://example.local/friendly_tiny/issues/1"
+  },
+  {
+    "number": 2,
+    "title": "Epic: rewrite architecture",
+    "body": "Tracking issue for a large RFC proposal to redesign the whole system.",
+    "labels": ["enhancement"],
+    "assignees": [{"login": "someone"}],
+    "pull_requests": [{"url": "https://example.local/pr/9"}],
+    "comments": 40,
+    "html_url": "https://example.local/friendly_tiny/issues/2"
+  },
+  {
+    "number": 3,
+    "title": "add failing test for off-by-one",
+    "body": "Function add(a,b) returns a+b+1. Need a regression test then fix.",
+    "labels": ["bug", "help wanted"],
+    "assignees": [],
+    "comments": 1,
+    "html_url": "https://example.local/friendly_tiny/issues/3"
+  }
+]
