@@ -11,21 +11,9 @@ Group=oocoder
 WorkingDirectory=/opt/oocoder
 Environment=OOCODER_HOME=/var/lib/oocoder
 Environment=NODE_ENV=production
+Environment=WATCH_MAX_TICKS=0
 EnvironmentFile=-/etc/oocoder/campaign.env
-ExecStart=/usr/bin/env bash -lc '\
-  set -euo pipefail; \
-  cd /opt/oocoder; \
-  EXTRA=(); \
-  if [[ "${OPEN_PRS:-0}" == "1" ]]; then EXTRA+=(--open-prs); fi; \
-  if [[ -n "${OPEN_LIMIT:-}" ]]; then EXTRA+=(-n "${OPEN_LIMIT}"); fi; \
-  if [[ "${DRY_RUN:-0}" == "1" ]]; then EXTRA+=(--dry-run); fi; \
-  node packages/cli/dist/bin.js campaign watch \
-    --interval "${WATCH_INTERVAL_SEC:-300}" \
-    --max-ticks 0 \
-    --runtime "${OOCODER_RUNTIME:-local}" \
-    --model "${OOCODER_MODEL:-composer-2.5}" \
-    "${EXTRA[@]}" \
-'
+ExecStart=/opt/oocoder/deploy/systemd/campaign-run.sh
 Restart=always
 RestartSec=60
 Nice=10

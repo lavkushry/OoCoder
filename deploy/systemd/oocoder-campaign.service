@@ -13,22 +13,9 @@ Group=oocoder
 WorkingDirectory=/opt/oocoder
 Environment=OOCODER_HOME=/var/lib/oocoder
 Environment=NODE_ENV=production
+Environment=WATCH_MAX_TICKS=1
 EnvironmentFile=-/etc/oocoder/campaign.env
-# One tick per timer fire. Enable OPEN_PRS=1 in campaign.env to also open PRs.
-ExecStart=/usr/bin/env bash -lc '\
-  set -euo pipefail; \
-  cd /opt/oocoder; \
-  EXTRA=(); \
-  if [[ "${OPEN_PRS:-0}" == "1" ]]; then EXTRA+=(--open-prs); fi; \
-  if [[ -n "${OPEN_LIMIT:-}" ]]; then EXTRA+=(-n "${OPEN_LIMIT}"); fi; \
-  if [[ "${DRY_RUN:-0}" == "1" ]]; then EXTRA+=(--dry-run); fi; \
-  node packages/cli/dist/bin.js campaign watch \
-    --max-ticks 1 \
-    --interval 30 \
-    --runtime "${OOCODER_RUNTIME:-local}" \
-    --model "${OOCODER_MODEL:-composer-2.5}" \
-    "${EXTRA[@]}" \
-'
+ExecStart=/opt/oocoder/deploy/systemd/campaign-run.sh
 Nice=10
 NoNewPrivileges=true
 ProtectSystem=strict
