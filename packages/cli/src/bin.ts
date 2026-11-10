@@ -7,6 +7,7 @@ import {
   discussIssue,
   followUpCiFixes,
   initOoCoder,
+  isAllowed,
   listCandidates,
   loadAllowlist,
   loadPolicy,
@@ -192,14 +193,25 @@ program
       await initOoCoder();
       const runtime = opts.runtime as RuntimeMode;
       const limit = Number(opts.limit);
-      const issues = await discoverIssues({ limit });
+      const issues = await discoverIssues({ limit: Math.max(limit * 5, limit) });
       const allowlist = loadAllowlist();
-      const actionable = issues.filter((i) => {
-        if (allowlist.repos.length === 0 && allowlist.orgs.length === 0) {
-          return false;
+      if (allowlist.repos.length === 0 && allowlist.orgs.length === 0) {
+        console.log(
+          "Nothing to process. Populate allowlist and ensure discover returns matches.",
+        );
+        return;
+      }
+
+      const actionable: typeof issues = [];
+      for (const issue of issues) {
+        if (!isAllowed(issue.owner, issue.repo, allowlist)) {
+          console.log(
+            `Skipping ${issue.owner}/${issue.repo}#${issue.number} (not allowlisted)`,
+          );
+          continue;
         }
-        return true;
-      });
+        actionable.push(issue);
+      }
 
       if (actionable.length === 0) {
         console.log(

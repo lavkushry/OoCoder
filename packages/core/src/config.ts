@@ -114,6 +114,14 @@ export function isAllowed(
   return false;
 }
 
+/** Daemon/work selection: keep only issues that pass the allowlist gate. */
+export function filterAllowlistedIssues<T extends { owner: string; repo: string }>(
+  issues: T[],
+  allowlist: AllowlistConfig = loadAllowlist(),
+): T[] {
+  return issues.filter((issue) => isAllowed(issue.owner, issue.repo, allowlist));
+}
+
 export function ensureHomeInitialized(home = oocoderHome()): {
   home: string;
   created: boolean;
