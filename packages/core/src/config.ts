@@ -42,9 +42,7 @@ const PolicySchema = z.object({
   disclosure: z.string().default(
     "---\n*Posted by OoCoder, an AI coding agent. A human maintains the allowlist and policy.*",
   ),
-  prFooter: z.string().default(
-    "---\n### OoCoder\nThis PR was prepared by an AI agent. Please review carefully.",
-  ),
+  prFooter: z.string().default(""),
   ciFix: z
     .object({
       enabled: z.boolean().default(true),
