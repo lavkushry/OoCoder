@@ -40,6 +40,9 @@ Captured from maintainer review on the first 50+ PRs. Keep `packages/core/src/im
 - Apply maintainer suggestion commits promptly; reply and re-request review after pushes.
 - Only document SQL that runs on current DuckDB (e.g. simple `CASE` comma-WHEN equality operands; comparison-operator WHEN forms may not parse yet).
 - `enable_fsync` was renamed to `fsync_mode` (`STANDARD` / `NONE` / `FULL`); document the enum, do not revive the boolean name.
+- Do not open one setting per pull request. Bundle related doc edits so CI runs once. Maintainers close unsolicited "Document X" setting PRs (no issue, not requested).
+- The TPC-H `dbgen` compliance warning no longer applies in DuckDB 2.0. Do not rewrite it.
+- Do not reopen a DuckDB pull request a maintainer closed. They will not review a spray of agent-written docs.
 
 ## Prefect
 
@@ -72,6 +75,8 @@ Captured from maintainer review on the first 50+ PRs. Keep `packages/core/src/im
 - Treat `gh pr view` fetch failures as `monitor_error` (not `human_comment`) so transient auth blips are not mistaken for maintainer feedback.
 - On rework signals, append a rule-log entry via `oocoder campaign learn` before relying on chat memory.
 - Daily `maxPrsPerDay` uses the rate counter only — never candidate `updatedAt` (sync/monitor bumps that and would false-cap Linux watch waves).
+- Without `CURSOR_API_KEY` / `GROK_API_KEY`, `campaign run` fail-fasts; keep opening surgical `gh` PRs and `campaign sync` so watch/monitor still progress the target.
+- Ignore ClickHouse `clickhouse-gh` CI report comments and Codex review-summary comments. They are automation, not maintainer feedback.
 
 ## delta-io/delta
 
