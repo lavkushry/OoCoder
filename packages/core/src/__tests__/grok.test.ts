@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   applyGrokEdits,
   formatGrokHttpError,
+  grokApiKey,
   parseGrokEdits,
   safeRepoPath,
 } from "../grok.js";
@@ -39,4 +40,19 @@ test("formatGrokHttpError surfaces string and object error bodies", () => {
     /Unauthorized/,
   );
   assert.match(formatGrokHttpError(400, { error: "x" }), /xAI Console key/);
+});
+
+test("grokApiKey prefers xai- Console keys over a stale GROK_API_KEY", () => {
+  const prevGrok = process.env.GROK_API_KEY;
+  const prevXai = process.env.XAI_API_KEY;
+  try {
+    process.env.GROK_API_KEY = "grok_stale_token";
+    process.env.XAI_API_KEY = "xai-real-console-key";
+    assert.equal(grokApiKey(), "xai-real-console-key");
+  } finally {
+    if (prevGrok === undefined) delete process.env.GROK_API_KEY;
+    else process.env.GROK_API_KEY = prevGrok;
+    if (prevXai === undefined) delete process.env.XAI_API_KEY;
+    else process.env.XAI_API_KEY = prevXai;
+  }
 });

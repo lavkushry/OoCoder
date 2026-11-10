@@ -11,9 +11,18 @@ export interface GrokEditPlan {
   files: GrokFileEdit[];
 }
 
+/**
+ * Resolve an xAI API key.
+ * Prefer `XAI_API_KEY`. If both are set, prefer a value that looks like an xAI
+ * Console key (`xai-…`) so a stale `GROK_API_KEY` chat token cannot shadow it.
+ */
 export function grokApiKey(): string | undefined {
-  const value = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
-  return value && value.trim() ? value.trim() : undefined;
+  const grok = process.env.GROK_API_KEY?.trim();
+  const xai = process.env.XAI_API_KEY?.trim();
+  const candidates = [xai, grok].filter((v): v is string => Boolean(v));
+  if (candidates.length === 0) return undefined;
+  const preferred = candidates.find((v) => v.startsWith("xai-"));
+  return preferred ?? candidates[0];
 }
 
 export function parseGrokEdits(text: string): GrokEditPlan {
