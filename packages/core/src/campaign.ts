@@ -95,10 +95,11 @@ export function getCampaignStatus(home = oocoderHome()): CampaignStatus {
   const cfg = campaignDefaults(policy);
   const rows = listCandidates(undefined, home);
   const opened = rows.filter((r) => r.status === "pr_opened" && r.prUrl);
-  const today = todayIsoDate();
-  const openedToday = opened.filter((r) => r.updatedAt.slice(0, 10) === today);
   const prsOpenedLifetime = opened.length;
-  const prsOpenedToday = Math.max(openedToday.length, getRateCount("prs", home));
+  // Daily cap must use the rate counter only. Candidate updatedAt is bumped by
+  // campaign sync/monitor, so counting "open PRs touched today" falsely exhausts
+  // the day and blocks continuous waves on Linux watch.
+  const prsOpenedToday = getRateCount("prs", home);
   const remainingToTarget = Math.max(0, cfg.targetPrs - prsOpenedLifetime);
   const remainingToday = Math.max(0, policy.rateLimits.maxPrsPerDay - prsOpenedToday);
   return {
@@ -303,6 +304,24 @@ export async function runCampaign(
       scrubbed: 0,
       messages,
     };
+  }
+
+  if (!opts.dryRun) {
+    const auth = await checkAuth();
+    if (!auth.cursorApiKey && !auth.grokApiKey) {
+      messages.push(
+        "Cannot open PRs: set CURSOR_API_KEY (or CURSOR_API_KEY_FILE) or GROK_API_KEY / XAI_API_KEY. On Linux watch, put the key in /etc/oocoder/campaign.env.",
+      );
+      return {
+        status: statusBefore,
+        discovered: 0,
+        processed: 0,
+        opened: 0,
+        failed: 0,
+        scrubbed: 0,
+        messages,
+      };
+    }
   }
 
   const batch = Math.min(

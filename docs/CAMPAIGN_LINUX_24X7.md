@@ -59,15 +59,24 @@ journalctl -u oocoder-campaign-watch.service -f
 
 ### Open new PRs from the server
 
+`campaign run` / `watch --open-prs` need a model key. Without one, OoCoder fail-fasts (no issue thrash).
+
 In `/etc/oocoder/campaign.env`:
 
 ```bash
 OPEN_PRS=1
 OPEN_LIMIT=3
 CURSOR_API_KEY_FILE=/etc/oocoder/cursor_api_key
+# or: GROK_API_KEY=xai-... / XAI_API_KEY=xai-...
 ```
 
-Keep `OPEN_PRS=0` until you are happy with monitor-only.
+```bash
+sudo install -m 0640 -o root -g oocoder /dev/null /etc/oocoder/cursor_api_key
+# paste the key into that file (one line), then:
+sudo systemctl restart oocoder-campaign.timer
+```
+
+Keep `OPEN_PRS=0` for monitor-only (no model key required).
 
 ## Cursor Agent vs server loop
 

@@ -1,4 +1,4 @@
-# Safety rails for the DE OSS contribution campaign (target: 100 PRs = first 50 + next 50).
+# Safety rails for the DE OSS contribution campaign (target: 150 PRs = 100 + next 50).
 
 labels:
   - "good first issue"
@@ -18,9 +18,9 @@ quality:
   maxLinesChanged: 400
 
 rateLimits:
-  # Continuous wave toward 100; tighten again after the campaign.
+  # Continuous wave toward 150; tighten again after the campaign.
   maxIssuesPerDay: 120
-  maxPrsPerDay: 100
+  maxPrsPerDay: 60
   maxCommentsPerDay: 80
 
 budget:
@@ -47,7 +47,7 @@ dashboard:
   historyDays: 30
 
 campaign:
-  targetPrs: 100
+  targetPrs: 150
   batchSize: 10
   discoverMultiplier: 5
   scrubBranding: true

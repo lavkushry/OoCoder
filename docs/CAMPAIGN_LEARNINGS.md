@@ -71,6 +71,7 @@ Captured from maintainer review on the first 50+ PRs. Keep `packages/core/src/im
 - Split CLA check failures (`cla-signed`, CLA Assistant) into `cla_blocking` so they are not confused with project CI.
 - Treat `gh pr view` fetch failures as `monitor_error` (not `human_comment`) so transient auth blips are not mistaken for maintainer feedback.
 - On rework signals, append a rule-log entry via `oocoder campaign learn` before relying on chat memory.
+- Daily `maxPrsPerDay` uses the rate counter only — never candidate `updatedAt` (sync/monitor bumps that and would false-cap Linux watch waves).
 
 ## delta-io/delta
 
@@ -88,6 +89,6 @@ pnpm --filter @oocoder/cli exec node ./dist/bin.js campaign run -n 10
 pnpm --filter @oocoder/cli exec node ./dist/bin.js campaign watch --interval 300 --max-ticks 0
 ```
 
-Target: `campaign.targetPrs: 100` in `configs/policy.yaml` / `~/.oocoder/policy.yaml`.
+Target: `campaign.targetPrs: 150` in `configs/policy.yaml` / `~/.oocoder/policy.yaml`.
 
 24×7 on Linux: [CAMPAIGN_LINUX_24X7.md](CAMPAIGN_LINUX_24X7.md) (`deploy/systemd/oocoder-campaign.timer`).

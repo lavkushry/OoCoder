@@ -49,3 +49,8 @@ After each entry:
 - **Source:** cla@trino.io email
 - **Rule:** After emailing the signed Individual CLA PDF to cla@trino.io, wait for trinodb/cla contributors to list the GitHub login (often a few days). Do not treat cla-signed green as instant; approved PRs stay blocked until then.
 - **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
+
+### campaign-ops — Daily PR cap uses rate counter only
+- **Source:** status Today vs rate counter
+- **Rule:** Do not count candidate updatedAt (bumped by sync/monitor) toward maxPrsPerDay; use getRateCount(prs) so continuous Linux watch waves are not false-capped.
+- **Encode:** update `docs/CAMPAIGN_LEARNINGS.md` and `packages/core/src/implement.ts`
