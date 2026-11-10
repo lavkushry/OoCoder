@@ -26,6 +26,30 @@ import {
 import { oocoderHome } from "./paths.js";
 import type { WorkOptions, WorkResult } from "./types.js";
 
+/** Hard gate: verification that actually ran and failed blocks commit/push/PR. */
+export function verificationBlocksShip(verify: {
+  ran: boolean;
+  ok: boolean;
+}): boolean {
+  return verify.ran && !verify.ok;
+}
+
+/**
+ * Rate-limit bumps for the local path — only after successful actions.
+ * Failed quality/verify/commit attempts must not consume quota.
+ */
+export function rateBumpsForLocalWork(options: {
+  dryRun: boolean;
+  committed: boolean;
+  prOpened: boolean;
+}): Array<"issues" | "prs"> {
+  if (options.dryRun) return [];
+  const bumps: Array<"issues" | "prs"> = [];
+  if (options.committed) bumps.push("issues");
+  if (options.prOpened) bumps.push("prs");
+  return bumps;
+}
+
 export async function workOnIssue(
   options: WorkOptions,
   home = oocoderHome(),
@@ -85,7 +109,6 @@ export async function workOnIssue(
   updateCandidate(`${issue.owner}/${issue.repo}#${issue.number}`, {
     status: "working",
   }, home);
-  bumpRate("issues", home);
 
   // Cloud path: Cursor opens the PR.
   if (runtime === "cloud") {
@@ -112,6 +135,8 @@ export async function workOnIssue(
       dryRun: false,
     });
 
+    // Quota only after successful cloud work / PR open.
+    bumpRate("issues", home);
     if (impl.prUrl) {
       bumpRate("prs", home);
       updateCandidate(`${issue.owner}/${issue.repo}#${issue.number}`, {
@@ -204,14 +229,20 @@ export async function workOnIssue(
   }
 
   const verify = await runBestEffortVerify(worktreePath);
-  if (verify.ran && !verify.ok) {
+  if (verificationBlocksShip(verify)) {
     logEvent(
       "verify_failed",
       issue.url,
       { command: verify.command, output: verify.output.slice(0, 4000) },
       home,
     );
-    // Soft fail: still allow PR but note it — autonomous mode prefers shipping with disclosure.
+    updateCandidate(`${issue.owner}/${issue.repo}#${issue.number}`, {
+      status: "failed",
+      notes: `Verification failed: ${verify.command ?? "unknown"}`,
+    }, home);
+    throw new Error(
+      `Verification failed (${verify.command ?? "unknown"}); refusing commit/push/PR`,
+    );
   }
 
   const committed = await commitAll(
@@ -226,6 +257,9 @@ export async function workOnIssue(
     }, home);
     throw new Error("Agent produced no file changes");
   }
+
+  // Issue work succeeded (changes committed); do not count failed attempts.
+  bumpRate("issues", home);
 
   let prUrl: string | null = null;
   if (!skipPr) {
