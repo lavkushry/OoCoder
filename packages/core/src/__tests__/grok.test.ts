@@ -52,7 +52,7 @@ test("applies surgical edits and rejects gutting large files", () => {
   applyGrokEdits(cwd, {
     summary: "sr",
     files: [],
-    edits: [{ path: "big.c", old: "line 10", new: "line TEN" }],
+    edits: [{ path: "big.c", old: "line 10\nline 11", new: "line TEN\nline 11" }],
   });
   assert.match(readFileSync(join(cwd, "big.c"), "utf8"), /line TEN/);
 
