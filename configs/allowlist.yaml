@@ -5,6 +5,8 @@ orgs: []
 
 repos:
   - redis/redis
+  - apache/airflow
+  - meltano/meltano
 
 # If both orgs and repos are empty, discover still runs against GitHub search
 # but work/discuss will refuse anything not explicitly allowlisted.

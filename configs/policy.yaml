@@ -2,6 +2,7 @@
 
 labels:
   - "documentation"
+  - "kind:documentation"
   - "class:bug"
   - "non critical bug"
   - "good first issue"
