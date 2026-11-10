@@ -24,6 +24,7 @@ repos:
   - airbytehq/airbyte
   # Analytical databases
   - duckdb/duckdb
+  - duckdb/duckdb-web
   - ClickHouse/ClickHouse
   # Prior Redis campaign (keep)
   - redis/redis
