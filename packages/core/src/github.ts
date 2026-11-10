@@ -1,3 +1,4 @@
+import { existsSync, statSync } from "node:fs";
 import { grokApiKey } from "./grok.js";
 import { run, runOk } from "./shell.js";
 import type { AuthStatus, IssueRef } from "./types.js";
@@ -85,7 +86,13 @@ export async function checkAuth(): Promise<AuthStatus> {
 /** True when a real Cursor credential is present (rejects placeholders like "…"). */
 export function hasUsableCursorAuth(): boolean {
   const file = process.env.CURSOR_API_KEY_FILE?.trim();
-  if (file) return true;
+  if (file && !isPlaceholderSecret(file) && existsSync(file)) {
+    try {
+      if (statSync(file).isFile()) return true;
+    } catch {
+      // A missing or unreadable path is not a credential. Do not read the file.
+    }
+  }
   const sa = process.env.CURSOR_SERVICE_ACCOUNT_KEY?.trim();
   if (sa && !isPlaceholderSecret(sa)) return true;
   const key = process.env.CURSOR_API_KEY?.trim();

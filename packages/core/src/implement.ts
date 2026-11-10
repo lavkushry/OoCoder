@@ -178,13 +178,12 @@ export async function implementIssue(options: {
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (options.runtime === "local" && grokApiKey() && /network request failed/i.test(msg)) {
-      return runGrok();
-    }
+    // Grok is only the coding brain when no Cursor credential exists.
+    // A network failure with a Cursor key stays a Cursor failure.
     throw new Error(
       `Cursor SDK failed (${msg}). ${
-        grokApiKey()
-          ? "Unset a placeholder CURSOR_API_KEY or fix network, or rely on GROK_API_KEY fallback."
+        hasCursorKey
+          ? "A Cursor key is set, so Grok was not used. Fix the Cursor local runtime, or unset CURSOR_API_KEY to fall back to Grok."
           : "Set a real CURSOR_API_KEY, or unset it and use GROK_API_KEY."
       }`,
     );

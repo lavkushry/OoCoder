@@ -8,6 +8,8 @@ User=oss-agent
 Group=oss-agent
 WorkingDirectory=/var/lib/oss-agent
 Environment=OSS_AGENT_DATABASE_URL=sqlite:////var/lib/oss-agent/oss_agent.db
+Environment=OSS_AGENT_SANDBOX__WORK_ROOT=/var/lib/oss-agent/sandbox
+Environment=OSS_AGENT_SANDBOX__PREFER_PODMAN=true
 EnvironmentFile=-/etc/oss-agent/orchestrator.env
 ExecStart=/var/lib/oss-agent/venv/bin/oss-agent serve --host 127.0.0.1 --port 8787
 Restart=on-failure

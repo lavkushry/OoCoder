@@ -1,0 +1,63 @@
+{
+  "repo": "fixtures/friendly_tiny",
+  "issue_title": "fix off-by-one in add()",
+  "known_flakes": ["tests/test_timing.py"],
+  "max_repairs": 2,
+  "accept_design": true,
+  "tracks": {
+    "merged": {
+      "sponsor_approves_merge": true,
+      "observations": [
+        {
+          "kind": "check",
+          "sha": "sha-fail-1",
+          "conclusion": "failure",
+          "name": "pytest",
+          "log": "FAILED tests/test_add.py - docstring still says Intentionally wrong"
+        },
+        {
+          "kind": "review",
+          "comment": "nit: docstring still describes the bug"
+        },
+        {
+          "kind": "check",
+          "sha": "sha-green-2",
+          "conclusion": "success",
+          "name": "pytest",
+          "log": "1 passed"
+        },
+        {
+          "kind": "merged",
+          "sha": "sha-green-2",
+          "comment": "sponsor approved the fixture merge"
+        }
+      ]
+    },
+    "stand_down": {
+      "sponsor_approves_merge": true,
+      "observations": [
+        {
+          "kind": "check",
+          "sha": "sha-fail-1",
+          "conclusion": "failure",
+          "name": "pytest",
+          "log": "FAILED tests/test_add.py - docstring still says Intentionally wrong"
+        },
+        {
+          "kind": "check",
+          "sha": "sha-fail-2",
+          "conclusion": "failure",
+          "name": "pytest",
+          "log": "ERROR: captured log has no diagnosable repair"
+        },
+        {
+          "kind": "check",
+          "sha": "sha-must-not-run",
+          "conclusion": "failure",
+          "name": "pytest",
+          "log": "intermittent failure: tests/test_timing.py"
+        }
+      ]
+    }
+  }
+}

@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -137,6 +138,30 @@ class Flake(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     project: Mapped[Project] = relationship(back_populates="flakes")
+
+
+class Lesson(Base):
+    """Durable repo lesson. Keyed by repo + failure signature. Not a log line."""
+
+    __tablename__ = "lessons"
+    __table_args__ = (UniqueConstraint("repo", "signature", name="uq_lessons_repo_signature"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    repo: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
+    signature: Mapped[str] = mapped_column(String(256), nullable=False)
+    # failure | maintainer_correction | stand_down
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    rule: Mapped[str] = mapped_column(Text, default="")
+    avoid_files: Mapped[list[str]] = mapped_column(JSON, default=list)
+    failed_pattern: Mapped[str] = mapped_column(Text, default="")
+    preferred_pattern: Mapped[str] = mapped_column(Text, default="")
+    module_relpath: Mapped[str] = mapped_column(String(512), default="")
+    title_block: Mapped[str] = mapped_column(String(512), default="")
+    title_hint: Mapped[str] = mapped_column(String(512), default="")
+    evidence_hash: Mapped[str] = mapped_column(String(128), default="")
+    # True only when a later sandbox run confirmed the preferred pattern.
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AuditLogEntry(Base):

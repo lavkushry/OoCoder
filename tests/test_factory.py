@@ -77,12 +77,21 @@ async def test_factory_line_runs_fixture(session, tmp_path: Path) -> None:
         "analyze",
         "await_analysis_approval",
         "intake",
+        "discuss",
+        "await_discuss_approval",
         "reproduce",
         "implement",
         "verify",
         "quality_analysis",
         "await_approval",
+        "review_iterate",
+        "await_merge",
     ]
     assert result.analysis_recommendation == "go"
+    assert result.chosen_issue == 3
+    assert result.discussion_action_id is not None
     assert result.pr_draft_id is not None
-    assert result.final_state == "open"
+    assert result.merged is True
+    assert result.task_state == "MERGED"
+    assert result.final_state == "closed"
+    assert result.result == "completed"

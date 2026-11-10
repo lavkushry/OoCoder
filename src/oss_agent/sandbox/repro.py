@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from oss_agent.config import SandboxConfig
 from oss_agent.protocols import SandboxRunner, UntrustedText
 
 
@@ -30,6 +31,7 @@ async def reproduce_issue(
     issue: UntrustedText,
     network_allowlist: list[str] | None = None,
     timeout_sec: int = 120,
+    work_root: Path | None = None,
 ) -> ReproductionResult:
     """
     Copy fixture/repo into an ephemeral workdir, run baseline tests, then a
@@ -37,10 +39,12 @@ async def reproduce_issue(
 
     Issue body is UntrustedText and is only written to a data file — never exec'd.
     """
-    work_root = Path("/tmp/oss-agent-sandbox") / task_id
-    if work_root.exists():
-        shutil.rmtree(work_root)
-    work_root.mkdir(parents=True)
+    base = work_root if work_root is not None else SandboxConfig().work_root
+    root = base / task_id
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    work_root = root
     dest = work_root / "repo"
     shutil.copytree(source_repo, dest, dirs_exist_ok=True)
 

@@ -78,6 +78,14 @@ sudo systemctl restart oocoder-campaign.timer
 
 Keep `OPEN_PRS=0` for monitor-only (no model key required).
 
+## Coding brain
+
+`campaign watch` on this unit is the Linux monitor. The coding step inside an implement or CI repair turn uses the Cursor Agent **local** runtime when `CURSOR_API_KEY` or `CURSOR_API_KEY_FILE` is set. Grok runs only when that credential is absent. A placeholder key does not count. The key stays in `/etc/oocoder/cursor_api_key` (mode `0640`); do not pass it on the command line.
+
+`campaign.targetPrs` is **150**. That number is the campaign cap in `configs/policy.yaml`. It is not a request to open 150 pull requests from a laptop. Leave `OPEN_PRS=0` unless a sponsor has approved a batch. Each open PR is then watched until it is merged or the repair cap is hit (2 sandbox repairs, then a stand-down draft). The gateway adds the AI disclosure line when the sponsor sends that draft.
+
+This file describes a Linux host. A macOS checkout does not start Podman or a live Cursor Agent run.
+
 ## Cursor Agent vs server loop
 
 | Surface | Role |
