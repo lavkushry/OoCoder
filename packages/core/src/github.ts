@@ -172,6 +172,8 @@ export async function searchIssues(options: {
   language?: string;
   limit: number;
   queryExtra?: string;
+  /** When set, restrict search to this owner/repo (preferred over queryExtra). */
+  repo?: string;
 }): Promise<IssueRef[]> {
   // Prefer gh flags over a single query string — `label:"..."` in a free
   // query often returns empty on newer gh versions; --label is reliable.
@@ -190,6 +192,9 @@ export async function searchIssues(options: {
       "--json",
       "number,title,body,url,createdAt,updatedAt,labels,commentsCount,repository",
     ];
+    if (options.repo) {
+      args.push("--repo", options.repo);
+    }
     if (options.language) {
       args.push("--language", options.language);
     }
@@ -197,8 +202,15 @@ export async function searchIssues(options: {
       args.push(options.queryExtra);
     }
 
-    const raw = await runOk("gh", args);
-    const items = JSON.parse(raw) as GhIssueJson[];
+    // Soft-fail per label: many repos lack Redis-style labels.
+    const result = await run("gh", args);
+    if (result.code !== 0) continue;
+    let items: GhIssueJson[] = [];
+    try {
+      items = JSON.parse(result.stdout) as GhIssueJson[];
+    } catch {
+      continue;
+    }
     for (const item of items) {
       const key = `${item.repository?.nameWithOwner ?? item.url}#${item.number}`;
       if (!byLabel.has(key)) byLabel.set(key, item);

@@ -185,18 +185,22 @@ program
   .option("-n, --limit <n>", "Max issues to process this run", "1")
   .option("--dry-run", "Do not post comments or open PRs", false)
   .option("--runtime <mode>", "local | cloud", "local")
-  .option("--skip-discuss", "Skip discussion comments", false)
+  .option("--discuss", "Post discussion comments before work", false)
+  .option("--skip-verify", "Skip compile/test verify gate", false)
+  .option("--skip-pr", "Commit locally but do not open a PR", false)
   .action(
     async (opts: {
       limit: string;
       dryRun?: boolean;
       runtime: string;
-      skipDiscuss?: boolean;
+      discuss?: boolean;
+      skipVerify?: boolean;
+      skipPr?: boolean;
     }) => {
       await initOoCoder();
       const runtime = opts.runtime as RuntimeMode;
       const limit = Number(opts.limit);
-      const issues = await discoverIssues({ limit: Math.max(limit * 5, limit) });
+      const issues = await discoverIssues({ limit: Math.max(limit * 5, 40) });
       const allowlist = loadAllowlist();
       if (allowlist.repos.length === 0 && allowlist.orgs.length === 0) {
         console.log(
@@ -223,18 +227,32 @@ program
         return;
       }
 
+      const already = new Set(
+        listCandidates()
+          .filter((c) => c.status === "pr_opened" || c.status === "working")
+          .map((c) => c.id),
+      );
+
       let processed = 0;
       for (const issue of actionable) {
         if (processed >= limit) break;
-        console.log(`\n=== Working ${issue.owner}/${issue.repo}#${issue.number} ===`);
+        const id = `${issue.owner}/${issue.repo}#${issue.number}`;
+        if (already.has(id)) {
+          console.log(`Skipping ${id} (already ${"pr_opened/working"})`);
+          continue;
+        }
+        console.log(`\n=== Working ${id} ===`);
         try {
           const result = await workOnIssue({
             issueUrl: issue.url,
             dryRun: opts.dryRun,
-            skipDiscuss: opts.skipDiscuss,
+            skipDiscuss: !opts.discuss,
+            skipVerify: opts.skipVerify,
+            skipPr: opts.skipPr,
             runtime,
           });
           console.log(result.message);
+          if (result.prUrl) console.log(`PR: ${result.prUrl}`);
           processed += 1;
         } catch (err) {
           console.error(

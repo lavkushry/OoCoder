@@ -24,12 +24,12 @@ export async function discussIssue(
     );
   }
 
+  const disclosure = policy.disclosure.trim();
   const body =
     options.message?.trim() ||
     [
       `Thanks for opening this issue. I'm looking into **${issue.title}** and will propose a fix if it fits the project's contribution guidelines.`,
-      "",
-      policy.disclosure.trim(),
+      ...(disclosure ? ["", disclosure] : []),
     ].join("\n");
 
   if (options.dryRun) {

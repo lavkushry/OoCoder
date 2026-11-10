@@ -1,38 +1,42 @@
-# Safety rails for fully autonomous operation.
+# Safety rails for the DE OSS contribution campaign (target: 50 PRs).
 
 labels:
+  - "good first issue"
+  - "good-first-issue"
+  - "help wanted"
+  - "help-wanted"
   - "documentation"
   - "kind:documentation"
-  - "class:bug"
-  - "non critical bug"
-  - "good first issue"
-  - "help wanted"
+  - "type:docs"
+  - "docs"
+  - "bug"
+  - "kind:bug"
+  - "type:bug"
 
 quality:
   maxFilesChanged: 20
   maxLinesChanged: 400
 
 rateLimits:
-  maxIssuesPerDay: 5
-  maxPrsPerDay: 3
-  maxCommentsPerDay: 10
+  # Campaign pace — still bounded; raise further only if maintainers stay happy.
+  maxIssuesPerDay: 25
+  maxPrsPerDay: 15
+  maxCommentsPerDay: 20
 
 budget:
-  # Soft hint for Cursor spend per work run (USD). Enforced best-effort via usage API when available.
   maxUsdPerRun: 5.0
 
-disclosure: |
-  ---
-  *This message was posted by [OoCoder](https://github.com/oocoder), an AI coding agent assisting with open-source contributions. A human maintains the allowlist and policy.*
+# Discuss disclosure left empty — PR bodies also have no agent footer.
+disclosure: ""
 
 prFooter: ""
 
 ciFix:
   enabled: true
   maxAttemptsPerPr: 2
-  maxFixesPerRun: 1
+  maxFixesPerRun: 2
   minMinutesAfterPush: 10
-  maxFilesTouched: 3
+  maxFilesTouched: 5
   maxLogBytes: 60000
 
 telemetry:
