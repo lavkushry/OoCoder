@@ -6,6 +6,7 @@ import test from "node:test";
 import { filterAllowlistedIssues, isAllowed } from "../config.js";
 import { ensureRepairWorktree } from "../git.js";
 import type { AllowlistConfig } from "../types.js";
+import { makefileVerifyArgs } from "../quality.js";
 import {
   rateBumpsForLocalWork,
   verificationBlocksShip,
