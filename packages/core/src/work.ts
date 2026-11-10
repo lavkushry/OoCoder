@@ -59,6 +59,7 @@ export async function workOnIssue(
   const runtime = options.runtime ?? "local";
   const dryRun = Boolean(options.dryRun);
   const skipPr = Boolean(options.skipPr);
+  const skipVerify = Boolean(options.skipVerify);
 
   const auth = await checkAuth();
   if (!auth.git || !auth.gh) {
@@ -228,7 +229,14 @@ export async function workOnIssue(
     throw new Error(quality.reason ?? "Quality gate failed");
   }
 
-  const verify = await runBestEffortVerify(worktreePath);
+  const verify = skipVerify
+    ? {
+        ran: false,
+        command: null,
+        ok: true,
+        output: "verify skipped (--skip-verify)",
+      }
+    : await runBestEffortVerify(worktreePath);
   if (verificationBlocksShip(verify)) {
     logEvent(
       "verify_failed",
@@ -241,7 +249,10 @@ export async function workOnIssue(
       notes: `Verification failed: ${verify.command ?? "unknown"}`,
     }, home);
     throw new Error(
-      `Verification failed (${verify.command ?? "unknown"}); refusing commit/push/PR`,
+      `Verification failed (${verify.command ?? "unknown"}); refusing commit/push/PR` +
+        (verify.command === "make test"
+          ? ". Unset OOCODER_VERIFY_MAKE_TEST or pass --skip-verify (default verify is compile-only make)."
+          : ""),
     );
   }
 

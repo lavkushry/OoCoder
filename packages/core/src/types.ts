@@ -87,6 +87,8 @@ export interface WorkOptions {
   dryRun?: boolean;
   skipPr?: boolean;
   skipDiscuss?: boolean;
+  /** Skip compile/test verify gate (local smoke / when make test is too heavy). */
+  skipVerify?: boolean;
   runtime?: RuntimeMode;
   model?: string;
   maxBudgetUsd?: number;

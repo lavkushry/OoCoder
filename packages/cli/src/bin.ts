@@ -101,6 +101,7 @@ program
   .option("--dry-run", "Prepare / analyze without coding or posting", false)
   .option("--skip-pr", "Commit locally but do not open a PR", false)
   .option("--skip-discuss", "Do not post an issue comment first", false)
+  .option("--skip-verify", "Skip compile/test verify gate", false)
   .option("--runtime <mode>", "local | cloud", "local")
   .option("--model <id>", "Cursor model id", "composer-2.5")
   .action(
@@ -110,6 +111,7 @@ program
         dryRun?: boolean;
         skipPr?: boolean;
         skipDiscuss?: boolean;
+        skipVerify?: boolean;
         runtime: string;
         model: string;
       },
@@ -124,6 +126,7 @@ program
         dryRun: opts.dryRun,
         skipPr: opts.skipPr,
         skipDiscuss: opts.skipDiscuss,
+        skipVerify: opts.skipVerify,
         runtime,
         model: opts.model,
       });
