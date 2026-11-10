@@ -94,7 +94,13 @@ export function getCampaignStatus(home = oocoderHome()): CampaignStatus {
   const policy = loadPolicy(home);
   const cfg = campaignDefaults(policy);
   const rows = listCandidates(undefined, home);
-  const opened = rows.filter((r) => r.status === "pr_opened" && r.prUrl);
+  // Merged and closed rows were opened. Keep them in the lifetime target so
+  // a later merge does not look like a missing PR and reopen the wave.
+  const opened = rows.filter(
+    (r) =>
+      (r.status === "pr_opened" || r.status === "merged" || r.status === "closed") &&
+      r.prUrl,
+  );
   const prsOpenedLifetime = opened.length;
   // Daily cap must use the rate counter only. Candidate updatedAt is bumped by
   // campaign sync/monitor, so counting "open PRs touched today" falsely exhausts
@@ -117,11 +123,14 @@ export function getCampaignStatus(home = oocoderHome()): CampaignStatus {
       maxComments: policy.rateLimits.maxCommentsPerDay,
     },
     byStatus: countByStatus(rows),
-    recentPrs: opened.slice(0, 15).map((r) => ({
-      id: r.id,
-      prUrl: r.prUrl!,
-      title: r.title,
-    })),
+    recentPrs: rows
+      .filter((r) => r.status === "pr_opened" && r.prUrl)
+      .slice(0, 15)
+      .map((r) => ({
+        id: r.id,
+        prUrl: r.prUrl!,
+        title: r.title,
+      })),
   };
 }
 
@@ -462,6 +471,43 @@ export interface CampaignMonitorResult {
   needsAction: CampaignMonitorItem[];
   approved: CampaignMonitorItem[];
   waiting: number;
+  /** Campaign PRs that merged during this pass. */
+  merged?: number;
+  /** Campaign PRs closed without merge during this pass. */
+  closed?: number;
+}
+
+/** Pull URL from a campaign row. The issue repo can differ from the PR repo. */
+export function parseCampaignPrUrl(
+  url: string,
+): { owner: string; repo: string; number: number } | null {
+  const match = /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/.exec(url);
+  if (!match) return null;
+  return { owner: match[1] ?? "", repo: match[2] ?? "", number: Number(match[3]) };
+}
+
+function campaignPrsToWatch(home: string): Array<GhPrHit & { candidateIds: string[] }> {
+  const grouped = new Map<string, GhPrHit & { candidateIds: string[] }>();
+  for (const row of listCandidates("pr_opened", home)) {
+    if (!row.prUrl) continue;
+    const parsed = parseCampaignPrUrl(row.prUrl);
+    if (!parsed) continue;
+    const key = `${parsed.owner}/${parsed.repo}#${parsed.number}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.candidateIds.push(row.id);
+      continue;
+    }
+    grouped.set(key, {
+      number: parsed.number,
+      title: row.title,
+      url: row.prUrl,
+      createdAt: row.updatedAt,
+      repository: { nameWithOwner: `${parsed.owner}/${parsed.repo}` },
+      candidateIds: [row.id],
+    });
+  }
+  return [...grouped.values()];
 }
 
 const BOT_LOGINS = new Set([
@@ -522,23 +568,15 @@ export async function monitorCampaignPrs(
   }
   const allowlist = loadAllowlist(home);
   const me = auth.ghLogin.toLowerCase();
-  const raw = await runOk("gh", [
-    "search",
-    "prs",
-    "--author",
-    auth.ghLogin,
-    "--state",
-    "open",
-    "--limit",
-    "100",
-    "--json",
-    "number,title,url,repository",
-  ]);
-  const hits = JSON.parse(raw) as GhPrHit[];
+  // Watch every campaign PR still marked open. GitHub search is capped at 100
+  // and this account has hundreds of other open PRs, so search drops older ones.
+  const hits = campaignPrsToWatch(home);
   const needsAction: CampaignMonitorItem[] = [];
   const approved: CampaignMonitorItem[] = [];
   let checked = 0;
   let waiting = 0;
+  let merged = 0;
+  let closed = 0;
 
   for (const pr of hits) {
     const full = pr.repository?.nameWithOwner;
@@ -548,6 +586,7 @@ export async function monitorCampaignPrs(
     checked += 1;
 
     let meta: {
+      state?: string;
       reviewDecision?: string;
       latestReviews?: Array<{
         author?: { login?: string };
@@ -569,7 +608,7 @@ export async function monitorCampaignPrs(
         "--repo",
         full,
         "--json",
-        "reviewDecision,latestReviews,comments,statusCheckRollup,mergeable,url,title",
+        "state,reviewDecision,latestReviews,comments,statusCheckRollup,mergeable,url,title",
       ]);
       meta = JSON.parse(metaRaw) as typeof meta;
     } catch (err) {
@@ -588,6 +627,17 @@ export async function monitorCampaignPrs(
           ),
         ],
       });
+      continue;
+    }
+
+    const ghState = (meta.state ?? "").toUpperCase();
+    if (ghState === "MERGED" || ghState === "CLOSED") {
+      const next = ghState === "MERGED" ? "merged" : "closed";
+      for (const id of pr.candidateIds) {
+        updateCandidate(id, { status: next }, home);
+      }
+      if (next === "merged") merged += 1;
+      else closed += 1;
       continue;
     }
 
@@ -791,13 +841,18 @@ export async function monitorCampaignPrs(
     home,
   );
 
-  return { checked, needsAction, approved, waiting };
+  return { checked, needsAction, approved, waiting, merged, closed };
 }
 
 export function formatCampaignMonitor(result: CampaignMonitorResult): string {
   const lines = [
-    `Monitored ${result.checked} allowlisted open PR(s): ${result.needsAction.length} need action, ${result.approved.length} approved, ${result.waiting} waiting.`,
+    `Monitored ${result.checked} campaign PR(s) still open: ${result.needsAction.length} need action, ${result.approved.length} approved, ${result.waiting} waiting.`,
   ];
+  if ((result.merged ?? 0) > 0 || (result.closed ?? 0) > 0) {
+    lines.push(
+      `Settled this pass: ${result.merged ?? 0} merged, ${result.closed ?? 0} closed.`,
+    );
+  }
   if (result.needsAction.length === 0) {
     lines.push("No maintainer rework signals right now.");
   } else {

@@ -77,6 +77,7 @@ Captured from maintainer review on the first 50+ PRs. Keep `packages/core/src/im
 - Daily `maxPrsPerDay` uses the rate counter only — never candidate `updatedAt` (sync/monitor bumps that and would false-cap Linux watch waves).
 - Without `CURSOR_API_KEY` / `GROK_API_KEY`, `campaign run` fail-fasts; keep opening surgical `gh` PRs and `campaign sync` so watch/monitor still progress the target.
 - Ignore ClickHouse `clickhouse-gh` CI report comments and Codex review-summary comments. They are automation, not maintainer feedback.
+- Monitor the campaign database, not a 100-row GitHub search. Mark merged and closed rows, and keep both in the lifetime target so a merge does not reopen the wave.
 
 ## delta-io/delta
 

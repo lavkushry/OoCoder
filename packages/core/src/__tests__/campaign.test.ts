@@ -13,6 +13,7 @@ import {
   getCampaignStatus,
   isClaCheckName,
   logCampaignLearning,
+  parseCampaignPrUrl,
   type CampaignMonitorResult,
   type CampaignWatchTickResult,
 } from "../campaign.js";
@@ -104,6 +105,45 @@ test("getCampaignStatus counts pr_opened toward target", () => {
   assert.equal(status.byStatus.discovered, 1);
   assert.match(formatCampaignStatus(status), /2\/50/);
   closeDb();
+});
+
+test("getCampaignStatus keeps merged and closed PRs in the lifetime target", () => {
+  const home = mkdtempSync(join(tmpdir(), "oocoder-campaign-"));
+  writeHome(home);
+  closeDb();
+  getDb(home);
+  const merged = upsertCandidate(issue({ number: 4, title: "merged" }), home);
+  updateCandidate(
+    merged.id,
+    { status: "merged", prUrl: "https://github.com/duckdb/duckdb-web/pull/7708" },
+    home,
+  );
+  const closed = upsertCandidate(issue({ number: 5, title: "closed" }), home);
+  updateCandidate(
+    closed.id,
+    { status: "closed", prUrl: "https://github.com/duckdb/duckdb-web/pull/7712" },
+    home,
+  );
+  const open = upsertCandidate(issue({ number: 6, title: "open" }), home);
+  updateCandidate(
+    open.id,
+    { status: "pr_opened", prUrl: "https://github.com/duckdb/duckdb-web/pull/7802" },
+    home,
+  );
+  const status = getCampaignStatus(home);
+  assert.equal(status.prsOpenedLifetime, 3);
+  assert.equal(status.remainingToTarget, 47);
+  assert.equal(status.recentPrs.length, 1);
+  assert.equal(status.recentPrs[0]?.prUrl, "https://github.com/duckdb/duckdb-web/pull/7802");
+  closeDb();
+});
+
+test("parseCampaignPrUrl reads the pull request repo, not the issue repo", () => {
+  assert.deepEqual(
+    parseCampaignPrUrl("https://github.com/duckdb/duckdb-web/pull/7708"),
+    { owner: "duckdb", repo: "duckdb-web", number: 7708 },
+  );
+  assert.equal(parseCampaignPrUrl("https://github.com/duckdb/duckdb/issues/26283"), null);
 });
 
 test("formatCampaignMonitor summarizes action items", () => {

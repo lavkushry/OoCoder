@@ -87,7 +87,15 @@ export interface CandidateRecord {
   title: string;
   labels: string;
   score: number;
-  status: "discovered" | "discussed" | "working" | "pr_opened" | "failed" | "skipped";
+  status:
+    | "discovered"
+    | "discussed"
+    | "working"
+    | "pr_opened"
+    | "merged"
+    | "closed"
+    | "failed"
+    | "skipped";
   discoveredAt: string;
   updatedAt: string;
   notes: string | null;
