@@ -47,6 +47,12 @@ test("verificationBlocksShip is hard when verify ran and failed", () => {
   assert.equal(verificationBlocksShip({ ran: false, ok: true }), false);
 });
 
+test("makefile verify defaults to compile-only make, not make test", () => {
+  assert.equal(makefileVerifyArgs({}).command, "make");
+  assert.deepEqual(makefileVerifyArgs({}).args, []);
+  assert.equal(makefileVerifyArgs({ OOCODER_VERIFY_MAKE_TEST: "1" }).command, "make test");
+});
+
 test("rate bumps only after successful local actions", () => {
   assert.deepEqual(
     rateBumpsForLocalWork({ dryRun: true, committed: true, prOpened: true }),
