@@ -15,6 +15,7 @@ function buildPrompt(issue: IssueRef): string {
     "- Add or update tests when appropriate and cheap.",
     "- Do not commit secrets, force-push, or modify CI credentials.",
     "- When done, leave the working tree with the fix applied (do not open the PR yourself).",
+    "- For existing large C/source files, return JSON edits[] with exact old/new snippets only — never files[].content rewrites.",
     "",
     `Repository: ${issue.owner}/${issue.repo}`,
     `Issue: #${issue.number} — ${issue.title}`,
