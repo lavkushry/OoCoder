@@ -71,6 +71,34 @@ export function applyGrokEdits(cwd: string, plan: GrokEditPlan): string[] {
   return written;
 }
 
+/** Default coding model on api.x.ai (alias stays current). Override with GROK_MODEL. */
+export const DEFAULT_GROK_MODEL = "grok-code-fast-1";
+
+export function formatGrokHttpError(status: number, body: unknown): string {
+  const hint =
+    status === 400 || status === 401
+      ? " Use an xAI Console key (usually starts with xai-), not a Cursor/Grok chat token. Set XAI_API_KEY or GROK_API_KEY."
+      : "";
+  if (body && typeof body === "object") {
+    const err = (body as { error?: unknown }).error;
+    if (typeof err === "string" && err.trim()) {
+      return `Grok request failed (${status}): ${err}.${hint}`;
+    }
+    if (err && typeof err === "object") {
+      const message = (err as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) {
+        return `Grok request failed (${status}): ${message}.${hint}`;
+      }
+    }
+    try {
+      return `Grok request failed (${status}): ${JSON.stringify(body).slice(0, 500)}.${hint}`;
+    } catch {
+      /* fall through */
+    }
+  }
+  return `Grok request failed (${status}): unknown error.${hint}`;
+}
+
 export async function grokChat(options: {
   apiKey: string;
   model: string;
@@ -89,21 +117,19 @@ export async function grokChat(options: {
         {
           role: "system",
           content:
-            "You edit a local git repository. Reply with one JSON object only: {\"summary\": string, \"files\": [{\"path\": \"repo-relative\", \"content\": \"full new file\"}]}. No markdown unless the JSON is inside one json fence. Do not include secrets.",
+            "You edit a local git repository. Reply with one JSON object only: {\"summary\": string, \"files\": [{\"path\": \"repo-relative\", \"content\": \"full new file\"}]}. No markdown unless the JSON is inside one json fence. Do not include secrets. Prefer the smallest files that need changes; never rewrite huge unrelated files.",
         },
         { role: "user", content: options.prompt },
       ],
     }),
   });
   const body = (await response.json()) as {
-    error?: { message?: string };
+    error?: { message?: string } | string;
     choices?: Array<{ message?: { content?: string } }>;
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   if (!response.ok) {
-    throw new Error(
-      `Grok request failed (${response.status}): ${body.error?.message ?? "unknown error"}`,
-    );
+    throw new Error(formatGrokHttpError(response.status, body));
   }
   const text = body.choices?.[0]?.message?.content ?? "";
   if (!text.trim()) {
@@ -127,7 +153,7 @@ export async function implementWithGrok(options: {
   }
   const chat = await grokChat({
     apiKey,
-    model: options.model ?? process.env.GROK_MODEL ?? "grok-4",
+    model: options.model ?? process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL,
     prompt: options.prompt,
   });
   const plan = parseGrokEdits(chat.text);

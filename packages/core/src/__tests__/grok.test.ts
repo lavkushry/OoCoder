@@ -3,7 +3,12 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { applyGrokEdits, parseGrokEdits, safeRepoPath } from "../grok.js";
+import {
+  applyGrokEdits,
+  formatGrokHttpError,
+  parseGrokEdits,
+  safeRepoPath,
+} from "../grok.js";
 
 test("parses a fenced Grok edit plan", () => {
   const plan = parseGrokEdits(
@@ -22,4 +27,16 @@ test("writes files inside the repo and rejects traversal", () => {
   assert.deepEqual(written, ["docs/note.txt"]);
   assert.equal(readFileSync(join(cwd, "docs/note.txt"), "utf8"), "ok");
   assert.throws(() => safeRepoPath(cwd, "../outside.txt"));
+});
+
+test("formatGrokHttpError surfaces string and object error bodies", () => {
+  assert.match(
+    formatGrokHttpError(400, { error: "Incorrect API key provided" }),
+    /Incorrect API key provided/,
+  );
+  assert.match(
+    formatGrokHttpError(401, { error: { message: "Unauthorized" } }),
+    /Unauthorized/,
+  );
+  assert.match(formatGrokHttpError(400, { error: "x" }), /xAI Console key/);
 });

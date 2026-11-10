@@ -3,10 +3,8 @@
 
 orgs: []
 
-# Examples:
-# - octocat/Hello-World
-# - your-org/your-sandbox-repo
-repos: []
+repos:
+  - redis/redis
 
 # If both orgs and repos are empty, discover still runs against GitHub search
 # but work/discuss will refuse anything not explicitly allowlisted.

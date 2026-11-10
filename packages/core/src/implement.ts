@@ -1,4 +1,5 @@
 import { Agent } from "@cursor/sdk";
+import { hasUsableCursorAuth } from "./github.js";
 import { grokApiKey, implementWithGrok } from "./grok.js";
 import { noteUsage } from "./telemetry.js";
 import type { IssueRef, RuntimeMode } from "./types.js";
@@ -75,13 +76,11 @@ export async function implementIssue(options: {
     };
   }
 
-  const apiKey = process.env.CURSOR_API_KEY;
-  const hasCursorKey = Boolean(
-    apiKey || process.env.CURSOR_API_KEY_FILE || process.env.CURSOR_SERVICE_ACCOUNT_KEY,
-  );
+  const apiKey = process.env.CURSOR_API_KEY?.trim();
+  const hasCursorKey = hasUsableCursorAuth();
   const prompt = options.promptOverride ?? buildPrompt(options.issue);
 
-  if (options.runtime === "local" && !hasCursorKey) {
+  const runGrok = async (): Promise<ImplementResult> => {
     if (!grokApiKey()) {
       throw new Error(
         "Set CURSOR_API_KEY for the Cursor SDK, or GROK_API_KEY for the Grok coding path. Or use --dry-run.",
@@ -102,58 +101,79 @@ export async function implementIssue(options: {
       runtime: "local",
       prUrl: null,
     };
+  };
+
+  // Local + no usable Cursor key → Grok (also covers CURSOR_API_KEY='…' placeholders).
+  if (options.runtime === "local" && !hasCursorKey) {
+    return runGrok();
   }
 
   const model = { id: options.model ?? "composer-2.5" };
+  const cursorApiKeyArg =
+    apiKey && hasCursorKey ? { apiKey } : ({} as { apiKey?: string });
 
-  if (options.runtime === "cloud") {
-    const agent = await Agent.create({
-      ...(apiKey ? { apiKey } : {}),
+  try {
+    if (options.runtime === "cloud") {
+      const agent = await Agent.create({
+        ...cursorApiKeyArg,
+        model,
+        cloud: {
+          repos: [
+            {
+              url: `https://github.com/${options.issue.owner}/${options.issue.repo}`,
+            },
+          ],
+          autoCreatePR: true,
+          skipReviewerRequest: true,
+        },
+      });
+
+      const runHandle = await agent.send(prompt);
+      const result = await runHandle.wait();
+      const prUrl =
+        typeof (result as { prUrl?: string }).prUrl === "string"
+          ? (result as { prUrl?: string }).prUrl!
+          : null;
+
+      return {
+        agentId: agent.agentId,
+        status: result.status,
+        resultText: result.result ?? null,
+        runtime: "cloud",
+        prUrl,
+      };
+    }
+
+    await using agent = await Agent.create({
+      ...cursorApiKeyArg,
       model,
-      cloud: {
-        repos: [
-          {
-            url: `https://github.com/${options.issue.owner}/${options.issue.repo}`,
-          },
-        ],
-        autoCreatePR: true,
-        skipReviewerRequest: true,
+      local: {
+        cwd: options.cwd,
+        settingSources: ["project"],
       },
     });
 
     const runHandle = await agent.send(prompt);
     const result = await runHandle.wait();
-    const prUrl =
-      typeof (result as { prUrl?: string }).prUrl === "string"
-        ? (result as { prUrl?: string }).prUrl!
-        : null;
 
     return {
       agentId: agent.agentId,
       status: result.status,
       resultText: result.result ?? null,
-      runtime: "cloud",
-      prUrl,
+      runtime: "local",
+      prUrl: null,
     };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (options.runtime === "local" && grokApiKey() && /network request failed/i.test(msg)) {
+      return runGrok();
+    }
+    throw new Error(
+      `Cursor SDK failed (${msg}). ${
+        grokApiKey()
+          ? "Unset a placeholder CURSOR_API_KEY or fix network, or rely on GROK_API_KEY fallback."
+          : "Set a real CURSOR_API_KEY, or unset it and use GROK_API_KEY."
+      }`,
+    );
   }
-
-  await using agent = await Agent.create({
-    ...(apiKey ? { apiKey } : {}),
-    model,
-    local: {
-      cwd: options.cwd,
-      settingSources: ["project"],
-    },
-  });
-
-  const runHandle = await agent.send(prompt);
-  const result = await runHandle.wait();
-
-  return {
-    agentId: agent.agentId,
-    status: result.status,
-    resultText: result.result ?? null,
-    runtime: "local",
-    prUrl: null,
-  };
 }

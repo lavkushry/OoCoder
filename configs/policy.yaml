@@ -1,10 +1,11 @@
 # Safety rails for fully autonomous operation.
 
 labels:
+  - "documentation"
+  - "class:bug"
+  - "non critical bug"
   - "good first issue"
   - "help wanted"
-  - "documentation"
-  - "bug"
 
 quality:
   maxFilesChanged: 20

@@ -61,11 +61,7 @@ export async function checkAuth(): Promise<AuthStatus> {
     }
   }
 
-  const cursorApiKey = Boolean(
-    process.env.CURSOR_API_KEY ||
-      process.env.CURSOR_API_KEY_FILE ||
-      process.env.CURSOR_SERVICE_ACCOUNT_KEY,
-  );
+  const cursorApiKey = hasUsableCursorAuth();
   const hasGrokKey = Boolean(grokApiKey());
 
   const parts: string[] = [];
@@ -84,6 +80,25 @@ export async function checkAuth(): Promise<AuthStatus> {
     git,
     message: parts.length === 0 ? "ok" : parts.join("; "),
   };
+}
+
+/** True when a real Cursor credential is present (rejects placeholders like "…"). */
+export function hasUsableCursorAuth(): boolean {
+  const file = process.env.CURSOR_API_KEY_FILE?.trim();
+  if (file) return true;
+  const sa = process.env.CURSOR_SERVICE_ACCOUNT_KEY?.trim();
+  if (sa && !isPlaceholderSecret(sa)) return true;
+  const key = process.env.CURSOR_API_KEY?.trim();
+  return Boolean(key && !isPlaceholderSecret(key));
+}
+
+export function isPlaceholderSecret(value: string): boolean {
+  const v = value.trim();
+  if (!v) return true;
+  // Common copy-paste placeholders from docs / shells.
+  if (v === "…" || v === "..." || v === "YOUR_KEY" || v === "your-key") return true;
+  if (/^(x+|changeme|replace.?me|todo)$/i.test(v)) return true;
+  return false;
 }
 
 interface GhIssueJson {
@@ -283,6 +298,37 @@ export async function hasPushAccess(owner: string, repo: string): Promise<boolea
   }
 }
 
+/** Args for `gh repo fork <upstream>` when not already inside a local checkout.
+ * Do not pass `--remote` / `--remote=false` — gh rejects those with a repo arg. */
+export function forkRepoArgs(upstream: string): string[] {
+  return ["repo", "fork", upstream, "--default-branch-only"];
+}
+
+async function repoExists(owner: string, repo: string): Promise<boolean> {
+  const result = await run("gh", [
+    "api",
+    `repos/${owner}/${repo}`,
+    "--jq",
+    ".full_name",
+  ]);
+  return result.code === 0;
+}
+
+async function waitForRepo(
+  owner: string,
+  repo: string,
+  attempts = 15,
+  delayMs = 1000,
+): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    if (await repoExists(owner, repo)) return;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  throw new Error(
+    `Fork ${owner}/${repo} was created but is not visible yet; retry in a moment`,
+  );
+}
+
 export async function ensureFork(
   owner: string,
   repo: string,
@@ -297,8 +343,12 @@ export async function ensureFork(
     };
   }
 
-  // Create fork if missing (idempotent).
-  await run("gh", ["repo", "fork", upstream, "--remote=false"]);
+  if (!(await repoExists(login, repo))) {
+    // Create fork (idempotent). Must not use --remote when a repo arg is set.
+    await runOk("gh", forkRepoArgs(upstream));
+    await waitForRepo(login, repo);
+  }
+
   return {
     forkOwner: login,
     cloneUrl: `https://github.com/${login}/${repo}.git`,
