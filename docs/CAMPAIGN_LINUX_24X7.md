@@ -42,7 +42,7 @@ sudo systemctl daemon-reload
 
 ### Option A — timer (recommended)
 
-Fires one tick every 5 minutes (survives restarts, less memory):
+Fires one tick every 5 minutes (survives restarts, less memory). The oneshot unit allows 15 minutes so a full monitor pass is not killed early:
 
 ```bash
 sudo systemctl enable --now oocoder-campaign.timer

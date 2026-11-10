@@ -6,6 +6,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# A full monitor pass walks every open allowlisted PR and can take several minutes.
+TimeoutStartSec=900
 User=oocoder
 Group=oocoder
 WorkingDirectory=/opt/oocoder
