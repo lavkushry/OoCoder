@@ -71,6 +71,19 @@ const PolicySchema = z.object({
       historyDays: z.number().default(30),
     })
     .default({ refreshPrStates: true, historyDays: 30 }),
+  campaign: z
+    .object({
+      targetPrs: z.number().default(50),
+      batchSize: z.number().default(10),
+      discoverMultiplier: z.number().default(5),
+      scrubBranding: z.boolean().default(true),
+    })
+    .default({
+      targetPrs: 50,
+      batchSize: 10,
+      discoverMultiplier: 5,
+      scrubBranding: true,
+    }),
 });
 
 function loadYamlFile(filePath: string): unknown {

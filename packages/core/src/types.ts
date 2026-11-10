@@ -24,6 +24,17 @@ export interface DashboardConfig {
   historyDays: number;
 }
 
+export interface CampaignPolicyConfig {
+  /** Lifetime PR goal (e.g. 50). */
+  targetPrs: number;
+  /** Max PRs per `oocoder campaign run`. */
+  batchSize: number;
+  /** Discover pool size = batchSize * discoverMultiplier. */
+  discoverMultiplier: number;
+  /** Strip Cursor/OoCoder footers from open PR bodies after runs. */
+  scrubBranding: boolean;
+}
+
 export type CiOutcome =
   | "patched"
   | "tests_failed"
@@ -50,6 +61,7 @@ export interface PolicyConfig {
   ciFix: CiFixConfig;
   telemetry: TelemetryConfig;
   dashboard: DashboardConfig;
+  campaign: CampaignPolicyConfig;
 }
 
 export interface IssueRef {

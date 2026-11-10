@@ -1,0 +1,13 @@
+[Unit]
+Description=OoCoder DE campaign watch every 5 minutes
+Documentation=file:///opt/oocoder/docs/CAMPAIGN_LINUX_24X7.md
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=1min
+Persistent=true
+Unit=oocoder-campaign.service
+
+[Install]
+WantedBy=timers.target

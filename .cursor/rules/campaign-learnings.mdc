@@ -1,0 +1,29 @@
+---
+description: When a DE-campaign PR review, CI failure, or maintainer note teaches a durable rule — log it before moving on.
+globs:
+  - packages/core/src/campaign.ts
+  - packages/core/src/implement.ts
+  - docs/CAMPAIGN_LEARNINGS.md
+  - docs/CAMPAIGN_RULE_LOG.md
+alwaysApply: true
+---
+
+# Campaign learning rule log
+
+When you learn something new from maintainer review, CI, CLA, or a rework on an allowlisted DE PR:
+
+1. **Log it first** with an append-only entry:
+   ```bash
+   oocoder campaign learn \
+     --repo owner/name \
+     --source '#PR' \
+     --title 'short title' \
+     --rule 'durable rule text' \
+     --encode
+   ```
+   Or append the same shape under today's `## YYYY-MM-DD` in `docs/CAMPAIGN_RULE_LOG.md`.
+2. **Roll up** the rule into the matching topic section in `docs/CAMPAIGN_LEARNINGS.md`.
+3. **Encode** into `packages/core/src/implement.ts` when future patches should follow it (titles, CLA, allocsize, Sphinx headings, etc.).
+4. Do not silently "just remember" a learning in chat — if it should change the next PR, it belongs in the rule log.
+
+Skip one-off typos that will not recur. Prefer conservative, repo-specific rules.

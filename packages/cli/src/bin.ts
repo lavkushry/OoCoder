@@ -6,11 +6,22 @@ import {
   discoverIssues,
   discussIssue,
   followUpCiFixes,
+  formatCampaignLearningResult,
+  formatCampaignMonitor,
+  formatCampaignStatus,
+  formatCampaignWatchTick,
+  getCampaignStatus,
   initOoCoder,
   isAllowed,
   listCandidates,
   loadAllowlist,
   loadPolicy,
+  logCampaignLearning,
+  monitorCampaignPrs,
+  runCampaign,
+  runCampaignWatch,
+  scrubCampaignBranding,
+  syncCampaignPrs,
   workOnIssue,
   writeDashboard,
   type RuntimeMode,
@@ -326,6 +337,188 @@ program
       `Wrote ${written.out} (${written.model.kpis.actionsTotal} actions, ${written.model.kpis.prsOpened} PRs)`,
     );
   });
+
+const campaign = program
+  .command("campaign")
+  .description("Manage the DE contribution campaign (status, sync, scrub, monitor, run)");
+
+campaign
+  .command("status")
+  .description("Show progress toward the campaign PR target")
+  .action(async () => {
+    await initOoCoder();
+    console.log(formatCampaignStatus(getCampaignStatus()));
+  });
+
+campaign
+  .command("sync")
+  .description("Import allowlisted open PRs you authored into the campaign DB")
+  .action(async () => {
+    await initOoCoder();
+    const result = await syncCampaignPrs();
+    console.log(`Synced ${result.synced} allowlisted open PR(s).`);
+    console.log(formatCampaignStatus(getCampaignStatus()));
+  });
+
+campaign
+  .command("scrub")
+  .description("Strip Cursor/OoCoder footers from allowlisted open PR bodies")
+  .action(async () => {
+    await initOoCoder();
+    const result = await scrubCampaignBranding();
+    console.log(`Scrubbed ${result.scrubbed}/${result.checked} open PR(s).`);
+  });
+
+campaign
+  .command("monitor")
+  .description(
+    "Scan open allowlisted PRs for maintainer feedback, CHANGES_REQUESTED, or failing CI",
+  )
+  .action(async () => {
+    await initOoCoder();
+    const result = await monitorCampaignPrs();
+    console.log(formatCampaignMonitor(result));
+    console.log(formatCampaignStatus(getCampaignStatus()));
+  });
+
+campaign
+  .command("learn")
+  .description(
+    "Append a new campaign learning to docs/CAMPAIGN_RULE_LOG.md (and audit DB)",
+  )
+  .requiredOption("--repo <owner/name>", "Repo or topic slug (e.g. redis/redis)")
+  .requiredOption("--title <text>", "Short learning title")
+  .requiredOption("--rule <text>", "Durable rule text to remember")
+  .option("--source <ref>", "Provenance (PR #, CI check, reviewer)")
+  .option("--date <YYYY-MM-DD>", "Log date (default: today UTC)")
+  .option(
+    "--encode",
+    "Mark that CAMPAIGN_LEARNINGS.md + implement.ts should be updated",
+    false,
+  )
+  .action(
+    async (opts: {
+      repo: string;
+      title: string;
+      rule: string;
+      source?: string;
+      date?: string;
+      encode?: boolean;
+    }) => {
+      await initOoCoder();
+      const result = logCampaignLearning({
+        repo: opts.repo,
+        title: opts.title,
+        rule: opts.rule,
+        source: opts.source,
+        date: opts.date,
+        encode: opts.encode,
+      });
+      console.log(formatCampaignLearningResult(result));
+    },
+  );
+
+campaign
+  .command("watch")
+  .description(
+    "Continuous 24x7 loop: sync → scrub → monitor → optional open PRs → fixci",
+  )
+  .option(
+    "--interval <sec>",
+    "Seconds between ticks (default 300)",
+    "300",
+  )
+  .option(
+    "--max-ticks <n>",
+    "Stop after N ticks (0 = forever; use 1 for systemd oneshot)",
+    "0",
+  )
+  .option("--open-prs", "Also open new PRs toward the campaign target each tick", false)
+  .option("-n, --limit <n>", "Max new PRs per tick when --open-prs is set")
+  .option("--dry-run", "Do not push, comment, or open PRs", false)
+  .option("--skip-verify", "Skip compile/test verify when opening PRs", false)
+  .option("--runtime <mode>", "local | cloud", "local")
+  .option("--model <id>", "Cursor model id", "composer-2.5")
+  .action(
+    async (opts: {
+      interval: string;
+      maxTicks: string;
+      openPrs?: boolean;
+      limit?: string;
+      dryRun?: boolean;
+      skipVerify?: boolean;
+      runtime: string;
+      model: string;
+    }) => {
+      await initOoCoder();
+      const runtime = opts.runtime as RuntimeMode;
+      if (runtime !== "local" && runtime !== "cloud") {
+        throw new Error(`Invalid --runtime: ${opts.runtime}`);
+      }
+      const intervalSec = Number(opts.interval);
+      const maxTicks = Number(opts.maxTicks);
+      console.log(
+        `Campaign watch starting (interval=${intervalSec}s maxTicks=${maxTicks || "∞"} openPrs=${Boolean(opts.openPrs)})`,
+      );
+      await runCampaignWatch({
+        intervalSec,
+        maxTicks,
+        openPrs: opts.openPrs,
+        openLimit: opts.limit ? Number(opts.limit) : undefined,
+        dryRun: opts.dryRun,
+        skipVerify: opts.skipVerify,
+        runtime,
+        model: opts.model,
+        onTick: async (tick) => {
+          console.log(formatCampaignWatchTick(tick));
+        },
+      });
+    },
+  );
+
+campaign
+  .command("run")
+  .description(
+    "Discover and work issues until the campaign/daily PR target for this batch",
+  )
+  .option("-n, --limit <n>", "Max PRs to open this run (default: policy campaign.batchSize)")
+  .option("--dry-run", "Analyze without posting or opening PRs", false)
+  .option("--discuss", "Post discussion comments before work", false)
+  .option("--verify", "Run compile/test verify gate", false)
+  .option("--skip-pr", "Commit locally but do not open a PR", false)
+  .option("--runtime <mode>", "local | cloud", "local")
+  .option("--model <id>", "Cursor model id", "composer-2.5")
+  .action(
+    async (opts: {
+      limit?: string;
+      dryRun?: boolean;
+      discuss?: boolean;
+      verify?: boolean;
+      skipPr?: boolean;
+      runtime: string;
+      model: string;
+    }) => {
+      await initOoCoder();
+      const runtime = opts.runtime as RuntimeMode;
+      if (runtime !== "local" && runtime !== "cloud") {
+        throw new Error(`Invalid --runtime: ${opts.runtime}`);
+      }
+      const result = await runCampaign({
+        dryRun: opts.dryRun,
+        skipDiscuss: !opts.discuss,
+        skipVerify: !opts.verify,
+        skipPr: opts.skipPr,
+        limit: opts.limit ? Number(opts.limit) : undefined,
+        runtime,
+        model: opts.model,
+      });
+      for (const line of result.messages) console.log(line);
+      console.log(
+        `\nCampaign batch done. processed=${result.processed} opened=${result.opened} failed=${result.failed}`,
+      );
+      console.log(formatCampaignStatus(result.status));
+    },
+  );
 
 async function main(): Promise<void> {
   try {

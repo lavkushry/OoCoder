@@ -1,0 +1,40 @@
+[Unit]
+Description=OoCoder DE campaign watch tick (sync/scrub/monitor/fixci)
+Documentation=file:///opt/oocoder/docs/CAMPAIGN_LINUX_24X7.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=oocoder
+Group=oocoder
+WorkingDirectory=/opt/oocoder
+Environment=OOCODER_HOME=/var/lib/oocoder
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/oocoder/campaign.env
+# One tick per timer fire. Enable OPEN_PRS=1 in campaign.env to also open PRs.
+ExecStart=/usr/bin/env bash -lc '\
+  set -euo pipefail; \
+  cd /opt/oocoder; \
+  EXTRA=(); \
+  if [[ "${OPEN_PRS:-0}" == "1" ]]; then EXTRA+=(--open-prs); fi; \
+  if [[ -n "${OPEN_LIMIT:-}" ]]; then EXTRA+=(-n "${OPEN_LIMIT}"); fi; \
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then EXTRA+=(--dry-run); fi; \
+  node packages/cli/dist/bin.js campaign watch \
+    --max-ticks 1 \
+    --interval 30 \
+    --runtime "${OOCODER_RUNTIME:-local}" \
+    --model "${OOCODER_MODEL:-composer-2.5}" \
+    "${EXTRA[@]}" \
+'
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/oocoder /opt/oocoder /var/log/oocoder
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
