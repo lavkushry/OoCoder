@@ -2,7 +2,7 @@
 
 ## Install (Linux)
 
-1. Python 3.12+, rootless Podman, git.
+1. Python 3.12+, rootless Podman on the Linux host, git. Podman runs with `--userns=keep-id` and `--network=none` when the allowlist is empty. The sandbox work directory is `/var/lib/oss-agent/sandbox` (see the orchestrator unit). A macOS machine uses Fake isolation and does not start that Podman command.
 2. `make setup`
 3. Create user: `useradd -r -m -d /var/lib/oss-agent oss-agent`
 4. Copy systemd units from `deploy/systemd/` to `/etc/systemd/system/`.

@@ -8,7 +8,7 @@ Fake/Podman isolation policies (default-deny egress, secret scrubbing, jail).
 
 from __future__ import annotations
 
-import shutil
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,6 +18,7 @@ from oss_agent.protocols import SandboxResult
 from oss_agent.sandbox.env import assert_no_secrets, scrub_env
 from oss_agent.sandbox.fake import FakeSandboxRunner
 from oss_agent.sandbox.network import EgressLog
+from oss_agent.sandbox.podman import PodmanSandboxRunner, linux_podman_available
 from oss_agent.sandbox.vault import CredentialVault
 
 if TYPE_CHECKING:
@@ -28,7 +29,8 @@ class OpenSandboxRuntime:
     """
     Local execution backend for OpenSandbox-style sessions.
 
-    Prefers Podman when ``prefer_podman`` and podman is on PATH; otherwise Fake.
+    Uses Podman only on Linux when ``prefer_podman`` is set and podman is on PATH.
+    On any other host the runtime stays on Fake and records why.
     """
 
     def __init__(
@@ -38,6 +40,7 @@ class OpenSandboxRuntime:
         memory_mb: int = 2048,
         cpus: float = 2.0,
         image: str = "docker.io/library/python:3.12-slim",
+        selinux_relabel: bool = False,
     ) -> None:
         self.prefer_podman = prefer_podman
         self.memory_mb = memory_mb
@@ -46,10 +49,19 @@ class OpenSandboxRuntime:
         self.egress = EgressLog()
         self._fake = FakeSandboxRunner()
         self._podman = None
-        if prefer_podman and shutil.which("podman") is not None:
-            from oss_agent.sandbox.podman import PodmanSandboxRunner
-
-            self._podman = PodmanSandboxRunner(image=image, memory_mb=memory_mb, cpus=cpus)
+        self.host_note = ""
+        if prefer_podman and not sys.platform.startswith("linux"):
+            self.host_note = (
+                f"Podman sandbox is for Linux. This process is {sys.platform}. "
+                "Using fake isolation. A live Linux run was not started."
+            )
+        if prefer_podman and linux_podman_available():
+            self._podman = PodmanSandboxRunner(
+                image=image,
+                memory_mb=memory_mb,
+                cpus=cpus,
+                selinux_relabel=selinux_relabel,
+            )
 
     async def execute(
         self,
@@ -121,6 +133,7 @@ class OpenSandboxRunner:
             memory_mb=sb.memory_mb,
             cpus=sb.cpus,
             image=sb.image,
+            selinux_relabel=sb.selinux_relabel,
         )
         self.last_session_id: str | None = None
 
@@ -141,7 +154,7 @@ class OpenSandboxRunner:
         session = await SandboxSession.create(
             self.config.image,
             workdir=workdir,
-            network_allowlist=network_allowlist or self.config.network_allowlist,
+            network_allowlist=list(network_allowlist),
             vault=self.vault,
             runner=self.runtime,
             meta={"task_id": task_id},

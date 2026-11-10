@@ -17,7 +17,7 @@ Derived from [PRD_AND_DESIGN.md](PRD_AND_DESIGN.md). Implementation code lives u
 | `scout` | Rules ingestion, project memory, issue scoring | none |
 | `rules` | AI policy, PR completeness, rate-limit checks | none |
 | `sandbox` | OpenSandbox-inspired sessions + vault; `SandboxRunner` (opensandbox/podman/fake) | never receives secrets; vault handles only |
-| `models` | `ModelProvider` (stub / OpenAI-compatible) | model keys via env to worker only |
+| `models` | `ModelProvider` (stub / OpenAI-compatible) plus coding-brain selection (Cursor local, else Grok, else fixture). Selection does not call an API | model keys via env or a root-owned file; never passed into the sandbox |
 | `github_read` | Read-only GitHub client | read token optional; no write |
 | `gateway` | **Only** writer; drafts → approve → send | GitHub App private key / install token |
 | `audit` | Append-only audit log (DB + JSONL files) | none |

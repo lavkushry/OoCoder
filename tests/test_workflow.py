@@ -26,11 +26,15 @@ def test_oss_contribution_workflow_valid() -> None:
         "analyze",
         "await_analysis_approval",
         "intake",
+        "discuss",
+        "await_discuss_approval",
         "reproduce",
         "implement",
         "verify",
         "quality_analysis",
         "await_approval",
+        "review_iterate",
+        "await_merge",
     ]
     assert steps == OSS_CONTRIBUTION_STEPS
 
@@ -62,7 +66,15 @@ def test_engine_happy_path_with_if_and_wait() -> None:
     assert engine.current_node(ex) is not None
     assert engine.current_node(ex).name == "intake"  # type: ignore[union-attr]
 
-    for name in ("intake", "reproduce", "implement", "verify", "quality_analysis"):
+    for name in (
+        "intake",
+        "discuss",
+        "await_discuss_approval",
+        "reproduce",
+        "implement",
+        "verify",
+        "quality_analysis",
+    ):
         assert engine.current_node(ex) is not None
         assert engine.current_node(ex).name == name  # type: ignore[union-attr]
         engine.complete(
@@ -72,6 +84,18 @@ def test_engine_happy_path_with_if_and_wait() -> None:
 
     assert engine.current_node(ex) is not None
     assert engine.current_node(ex).name == "await_approval"  # type: ignore[union-attr]
+    engine.complete(
+        ex,
+        NodeRunResult(success=True, items=[WorkflowItem(json={"passed": True})]),
+    )
+    assert engine.current_node(ex) is not None
+    assert engine.current_node(ex).name == "review_iterate"  # type: ignore[union-attr]
+    engine.complete(
+        ex,
+        NodeRunResult(success=True, items=[WorkflowItem(json={"passed": True})]),
+    )
+    assert engine.current_node(ex) is not None
+    assert engine.current_node(ex).name == "await_merge"  # type: ignore[union-attr]
     engine.complete(
         ex,
         NodeRunResult(success=True, items=[WorkflowItem(json={"passed": True})]),

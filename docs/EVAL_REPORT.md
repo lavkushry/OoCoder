@@ -9,3 +9,4 @@ Offline replay against `fixtures/`.
 | reproduction_success | 1.0 |
 | draft_quality | 1.0 |
 | flake_handling | 1.0 |
+| fixture_merge | 1.0 |

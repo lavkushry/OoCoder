@@ -1,0 +1,44 @@
+{
+  "repo": "fixtures/friendly_tiny",
+  "allowlist": ["fixtures/friendly_tiny"],
+  "initial_fix": {
+    "module_relpath": "src/friendly_tiny/__init__.py",
+    "old": "return a + b + 1",
+    "new": "return a + b",
+    "title": "fix off-by-one in add()"
+  },
+  "follow_up_fix": {
+    "module_relpath": "src/friendly_tiny/__init__.py",
+    "old": "Intentionally wrong: off-by-one for fixture reproduction.",
+    "new": "Return the sum of two integers."
+  },
+  "review_comments": [
+    "nit: docstring still describes the bug",
+    "This test looks flaky on CI when the load is high",
+    "Why did you choose this approach?"
+  ],
+  "known_flakes": ["tests/test_timing.py"],
+  "ci_rounds": [
+    {
+      "sha": "sha-fail-1",
+      "conclusion": "failure",
+      "name": "pytest",
+      "log": "FAILED tests/test_add.py - docstring still says Intentionally wrong"
+    },
+    {
+      "sha": "sha-green-2",
+      "conclusion": "success",
+      "name": "pytest",
+      "log": "1 passed"
+    }
+  ],
+  "sponsor": {
+    "approved_by": "sponsor",
+    "approve_discussion": true,
+    "approve_pr": true,
+    "approve_follow_up": true,
+    "approve_replies": true,
+    "approve_merge": true,
+    "accept_design": true
+  }
+}

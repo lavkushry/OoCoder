@@ -44,13 +44,16 @@ class SandboxConfig(BaseModel):
     OpenSandbox-inspired isolation settings.
 
     ``opensandbox`` is the default engine (session lifecycle + vault + egress).
-    Local runtime uses Fake isolation offline; set prefer_podman=True when Podman
-    is available. Optional future: remote OpenSandbox server URL.
+    Local runtime uses Fake isolation offline. Podman is selected only on a
+    Linux host when ``prefer_podman`` is true and ``podman`` is on PATH.
+    macOS stays on Fake. ``selinux_relabel`` appends ``,Z`` to the workdir
+    mount for enforcing SELinux; leave it false on Debian and Ubuntu.
     """
 
     backend: Literal["opensandbox", "podman", "fake"] = "opensandbox"
     image: str = "docker.io/library/python:3.12-slim"
     prefer_podman: bool = False
+    selinux_relabel: bool = False
     memory_mb: int = Field(default=2048, ge=256)
     cpus: float = Field(default=2.0, gt=0)
     timeout_sec: int = Field(default=1800, ge=30)

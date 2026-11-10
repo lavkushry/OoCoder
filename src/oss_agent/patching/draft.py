@@ -37,6 +37,11 @@ def apply_minimal_fix(repo_dir: Path, *, module_relpath: str, old: str, new: str
     )
 
 
+def unified_diff(path: str, before: str, after: str) -> str:
+    """Unified diff for a repair. Callers persist this as sandbox-captured evidence."""
+    return _unified_diff(path, before, after)
+
+
 def _unified_diff(path: str, before: str, after: str) -> str:
     import difflib
 

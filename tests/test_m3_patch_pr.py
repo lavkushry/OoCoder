@@ -19,6 +19,12 @@ async def test_fixture_to_pr_draft(tmp_path: Path) -> None:
     assert result.verify_ok is True
     assert result.pr_draft_id is not None
     assert result.pr_errors == []
+    assert result.chosen_issue == 3
+    assert result.discussion_action_id is not None
+    assert result.discussion_disclosed is True
+    assert result.merged is True
+    assert result.task_state == "MERGED"
+    assert result.flake_detected is True
 
 
 def test_rules_engine_blocks_incomplete_draft() -> None:

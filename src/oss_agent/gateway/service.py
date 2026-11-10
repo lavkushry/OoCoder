@@ -42,6 +42,7 @@ class GitHubGatewayService:
         return self.config.policy
 
     def enqueue(self, draft: OutwardActionDraft) -> str:
+        self._assert_safe_push(draft.kind, draft.payload)
         self._assert_research_before_action(draft.kind, draft.payload)
         action_id = f"act_{uuid.uuid4().hex[:16]}"
         row = Action(
@@ -87,6 +88,7 @@ class GitHubGatewayService:
             raise GatewayError(f"unknown draft {draft_id}")
 
         kind: ActionKind = action.kind  # type: ignore[assignment]
+        self._assert_safe_push(kind, action.draft)
         if not self._rate_limit_ok(action.task_id, kind):
             raise GatewayError("rate limit exceeded")
 
@@ -123,6 +125,20 @@ class GitHubGatewayService:
             task_id=action.task_id,
         )
         return GatewaySendResult(ok=True, remote_id=remote_id, error=None)
+
+    def _assert_safe_push(self, kind: ActionKind, payload: Mapping[str, Any]) -> None:
+        """Refuse force-push and commits onto main, master, or develop."""
+        if kind != "push":
+            return
+        force = payload.get("force")
+        if force is True or (isinstance(force, str) and force.lower() == "true"):
+            raise GatewayError("force_push_refused")
+        branch = str(payload.get("branch") or "")
+        short = branch.removeprefix("refs/heads/").strip()
+        if short.casefold() in {"main", "master", "develop"}:
+            raise GatewayError("protected_branch")
+        if not short or short.startswith("-") or ".." in short:
+            raise GatewayError("push_requires_unprotected_branch")
 
     def _assert_research_before_action(self, kind: ActionKind, payload: Mapping[str, Any]) -> None:
         """Khoj/last30days gate: every outward action needs a research brief id."""

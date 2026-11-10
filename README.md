@@ -11,14 +11,15 @@ Operational model combines:
 - [SuperPlane](https://github.com/superplanehq/superplane)’s **software factory** board: **Backlog → Running → Review → Done**
 - [Strix](https://github.com/usestrix/strix)-inspired **code quality / security analysis** (severity + SARIF) on the contribution diff before PR draft
 
-Default workflow main path: `project_research → analyze → await_analysis_approval → intake → reproduce → implement → verify → quality_analysis → await_approval` (research also re-runs before each step and before gateway enqueue).
+Default workflow main path: `project_research → analyze → await_analysis_approval → intake → discuss → await_discuss_approval → reproduce → implement → verify → quality_analysis → await_approval → review_iterate → await_merge`. Discussion is approved before reproduction so the claim stays in front of sandbox work. The offline demo ends in a sponsor-approved fixture merge. Research re-runs before each step and before gateway enqueue. No live GitHub write.
 
 Spec: [docs/PRD_AND_DESIGN.md](docs/PRD_AND_DESIGN.md) · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Runbook: [docs/OPERATOR_RUNBOOK.md](docs/OPERATOR_RUNBOOK.md)
 
 ## Requirements
 
 - Python 3.12+
-- Linux recommended for rootless Podman; default OpenSandbox local runtime uses Fake isolation offline (`prefer_podman=True` when Podman is available)
+- Linux for rootless Podman (`--userns=keep-id`, empty allowlist means `--network=none`). This checkout's offline tests stay on Fake isolation. A macOS process does not start the Podman runner.
+- Coding brain: Cursor Agent local runtime when `CURSOR_API_KEY` or `CURSOR_API_KEY_FILE` is set. Grok is the fallback only when that credential is absent. Offline runs do not call either API.
 - Optional: GitHub App credentials (gateway only)
 
 ## Quick start
