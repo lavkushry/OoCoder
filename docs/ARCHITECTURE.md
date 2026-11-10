@@ -8,12 +8,15 @@ Derived from [PRD_AND_DESIGN.md](PRD_AND_DESIGN.md). Implementation code lives u
 | --- | --- | --- |
 | `config` | Single pydantic `AppConfig` | none |
 | `db` | SQLAlchemy models + Alembic migrations | none |
+| `workflow` | n8n-inspired workflow engine (graph, IF/wait, item bags) | none |
+| `research` | Khoj + last30days-inspired project research before every action | none |
 | `factory` | SuperPlane-inspired Factory, lines, work orders, board lanes | none |
 | `analysis` | Paperclip-inspired pre-contribution analysis (goal/budget/governance) | none |
+| `quality` | Strix-inspired diff quality/security gate (SARIF) | none |
 | `orchestrator` | Durable state machine, timeouts, resume | none |
 | `scout` | Rules ingestion, project memory, issue scoring | none |
 | `rules` | AI policy, PR completeness, rate-limit checks | none |
-| `sandbox` | `SandboxRunner` (Podman; Fake for tests) | never receives secrets |
+| `sandbox` | OpenSandbox-inspired sessions + vault; `SandboxRunner` (opensandbox/podman/fake) | never receives secrets; vault handles only |
 | `models` | `ModelProvider` (stub / OpenAI-compatible) | model keys via env to worker only |
 | `github_read` | Read-only GitHub client | read token optional; no write |
 | `gateway` | **Only** writer; drafts → approve → send | GitHub App private key / install token |

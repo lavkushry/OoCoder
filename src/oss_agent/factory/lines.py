@@ -1,19 +1,14 @@
-"""Default factory lines for OSS contribution."""
+"""Default factory lines for OSS contribution — backed by n8n-style workflow graph."""
 
 from __future__ import annotations
 
 from typing import Any
 
-# Paperclip analysis → SuperPlane contribution → Strix-inspired quality gate → PR draft
-OSS_CONTRIBUTION_LINE_NAME = "oss-contribution"
+from oss_agent.workflow.graph import linear_executable_steps
+from oss_agent.workflow.oss_contribution import OSS_CONTRIBUTION_WORKFLOW
 
-OSS_CONTRIBUTION_STEPS: list[dict[str, Any]] = [
-    {"name": "analyze", "app": "paperclip_analysis"},
-    {"name": "await_analysis_approval", "app": "governance_gate"},
-    {"name": "intake", "app": "scout"},
-    {"name": "reproduce", "app": "sandbox"},
-    {"name": "implement", "app": "patch"},
-    {"name": "verify", "app": "verify"},
-    {"name": "quality_analysis", "app": "strix_quality"},
-    {"name": "await_approval", "app": "gateway_draft"},
-]
+# Paperclip analysis → SuperPlane contribution → Strix quality → PR draft
+# Graph source of truth: OSS_CONTRIBUTION_WORKFLOW (IF + wait nodes).
+OSS_CONTRIBUTION_LINE_NAME = OSS_CONTRIBUTION_WORKFLOW.name
+
+OSS_CONTRIBUTION_STEPS: list[dict[str, Any]] = linear_executable_steps(OSS_CONTRIBUTION_WORKFLOW)

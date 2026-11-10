@@ -37,11 +37,11 @@ def test_work_order_lifecycle_and_board(session) -> None:
     execution = svc.dispatch(order.id, line_name=OSS_CONTRIBUTION_LINE_NAME)
     assert order.state == WorkOrderState.OPEN.value
     assert board_lane(order.state, has_active_execution=True) == BoardLane.RUNNING
-    assert execution.step_name == "analyze"
+    assert execution.step_name == "project_research"
 
     nxt = svc.advance_or_fail(execution.id, passed=True)
     assert nxt is not None
-    assert nxt.step_name == "await_analysis_approval"
+    assert nxt.step_name == "analyze"
 
     # Finish remaining steps quickly as pass-through for lifecycle test
     while nxt is not None:
@@ -73,6 +73,7 @@ async def test_factory_line_runs_fixture(session, tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     result = await run_oss_factory_demo(root, tmp_path, session)
     assert result.steps_passed == [
+        "project_research",
         "analyze",
         "await_analysis_approval",
         "intake",

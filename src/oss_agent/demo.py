@@ -29,9 +29,10 @@ def run_offline_demo() -> None:
             orders = svc.list_orders(result.factory_id)
             board = group_by_lane(orders)
             print("=== oss-agent factory demo ===")
-            print("(Paperclip analysis → SuperPlane line → Strix quality)")
+            print("(research → n8n → Paperclip → SuperPlane → Strix)")
             print(f"factory_id={result.factory_id}")
             print(f"work_order_id={result.work_order_id}")
+            print(f"workflow={result.workflow_execution_id} status={result.workflow_status}")
             print(f"analysis={result.analysis_recommendation}")
             print(f"steps_passed={result.steps_passed}")
             print(f"pr_draft_id={result.pr_draft_id}")
@@ -41,6 +42,7 @@ def run_offline_demo() -> None:
                 titles = ", ".join(f"#{o.number} {o.title}" for o in items) or "(empty)"
                 print(f"  {lane}: {titles}")
             expected = [
+                "project_research",
                 "analyze",
                 "await_analysis_approval",
                 "intake",
@@ -54,10 +56,11 @@ def run_offline_demo() -> None:
                 result.pr_draft_id
                 and result.final_state == "open"
                 and result.analysis_recommendation == "go"
+                and result.workflow_status == "success"
                 and result.steps_passed == expected
             )
             if not ok:
                 raise SystemExit(1)
-            print("demo OK — analysis + quality gates passed; work order in Review lane")
+            print("demo OK — workflow success; work order in Review lane")
 
     asyncio.run(_run())

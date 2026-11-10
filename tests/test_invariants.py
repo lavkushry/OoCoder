@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 
 from oss_agent.audit.log import FileAndDbAuditLog
-from oss_agent.config import AppConfig
+from oss_agent.config import AppConfig, ResearchConfig
 from oss_agent.db.models import Action, Artifact, Project
 from oss_agent.db.session import create_all, make_engine
 from oss_agent.gateway.service import GatewayError, GitHubGatewayService
@@ -30,7 +30,8 @@ def gw_env(tmp_path: Path) -> Iterator[tuple]:
     session = sessionmaker(bind=engine, expire_on_commit=False)()
     session.add(Project(id="p", repo="r", policy_json={}, ai_allowed=True, rate_limits={}))
     session.commit()
-    cfg = AppConfig()
+    # Invariant suite focuses on gateway gates other than research; research has its own tests.
+    cfg = AppConfig(research=ResearchConfig(require_before_action=False))
     audit = FileAndDbAuditLog(tmp_path / "a.jsonl", session)
     orch = Orchestrator(session, cfg, audit)
     gw = GitHubGatewayService(session, cfg, audit)

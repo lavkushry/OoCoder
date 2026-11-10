@@ -8,12 +8,15 @@ Full product and design spec: [docs/PRD_AND_DESIGN.md](docs/PRD_AND_DESIGN.md). 
 
 ```
 src/oss_agent/          # Python package (orchestration, gateway, scout, sandbox, UI)
+  workflow/             # n8n-inspired workflow engine (nodes, connections, IF/wait)
+  research/             # Khoj + last30days-inspired project research (before every action)
   factory/              # SuperPlane-inspired software factory (work orders, lines, board)
   analysis/             # Paperclip-inspired pre-contribution analysis (goal/budget/governance)
+  quality/              # Strix-inspired code quality / security gate (severity + SARIF)
   gateway/              # ONLY module that may hold/use GitHub write credentials
   orchestrator/         # Durable state machine
   scout/                # Rules ingestion, project memory, issue ranking
-  sandbox/              # Podman runner (Protocol allows future KVM backend)
+  sandbox/              # OpenSandbox-inspired engine (sessions, vault, Podman/Fake backends)
   rules/                # Deterministic policy / rate limits / AI disclosure
   models/               # LLM provider interface (main + cheap)
   db/                   # Schema, migrations, repositories

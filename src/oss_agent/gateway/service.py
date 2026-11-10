@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -41,6 +42,7 @@ class GitHubGatewayService:
         return self.config.policy
 
     def enqueue(self, draft: OutwardActionDraft) -> str:
+        self._assert_research_before_action(draft.kind, draft.payload)
         action_id = f"act_{uuid.uuid4().hex[:16]}"
         row = Action(
             id=action_id,
@@ -55,7 +57,11 @@ class GitHubGatewayService:
         self.audit.append(
             actor="gateway",
             event="action.enqueued",
-            payload={"action_id": action_id, "kind": draft.kind},
+            payload={
+                "action_id": action_id,
+                "kind": draft.kind,
+                "research_brief_id": draft.payload.get("research_brief_id"),
+            },
             task_id=draft.task_id,
         )
         # Auto-approve opt-in per kind
@@ -117,6 +123,20 @@ class GitHubGatewayService:
             task_id=action.task_id,
         )
         return GatewaySendResult(ok=True, remote_id=remote_id, error=None)
+
+    def _assert_research_before_action(self, kind: ActionKind, payload: Mapping[str, Any]) -> None:
+        """Khoj/last30days gate: every outward action needs a research brief id."""
+        research = self.config.research
+        if not research.enabled or not research.require_before_action:
+            return
+        brief_id = payload.get("research_brief_id")
+        if not isinstance(brief_id, str) or not brief_id.startswith("res_"):
+            self.audit.append(
+                actor="gateway",
+                event="action.blocked_missing_research",
+                payload={"kind": kind},
+            )
+            raise GatewayError("research required before action")
 
     def _ensure_credentials(self) -> None:
         if self._credentials_loaded:

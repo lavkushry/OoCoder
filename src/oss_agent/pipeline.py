@@ -17,9 +17,10 @@ from oss_agent.orchestrator.states import TaskState
 from oss_agent.patching.draft import apply_minimal_fix, build_pr_draft
 from oss_agent.patching.verify import run_local_verification
 from oss_agent.protocols import OutwardActionDraft, UntrustedText
+from oss_agent.research import research_before_action
 from oss_agent.review.loop import handle_review_thread
 from oss_agent.rules.engine import DefaultRulesEngine
-from oss_agent.sandbox.fake import FakeSandboxRunner
+from oss_agent.sandbox import make_sandbox_runner
 from oss_agent.sandbox.repro import reproduce_issue
 from oss_agent.scout.policy import assert_ai_allowed, ingest_project_rules
 from oss_agent.scout.ranking import rank_issues
@@ -47,8 +48,6 @@ async def run_fixture_pipeline(root: Path, work: Path) -> PipelineResult:
 
     engine = make_engine(f"sqlite:///{work / 'demo.db'}")
     create_all(engine)
-    runner = FakeSandboxRunner()
-
     with session_scope(engine) as session:
         session.add(
             Project(
@@ -61,6 +60,7 @@ async def run_fixture_pipeline(root: Path, work: Path) -> PipelineResult:
         )
         session.flush()
         cfg = AppConfig()
+        runner = make_sandbox_runner(cfg)
         audit = FileAndDbAuditLog(work / "audit.jsonl", session)
         orch = Orchestrator(session, cfg, audit)
         gw = GitHubGatewayService(session, cfg, audit)
@@ -129,11 +129,19 @@ async def run_fixture_pipeline(root: Path, work: Path) -> PipelineResult:
             test_log_excerpt=verify.log,
             diff_excerpt=patch.diff,
         )
+        brief = research_before_action(
+            action_kind="pr",
+            query=f"{chosen.title}\n{chosen.body.body}",
+            project_root=repo,
+            issues_path=fixtures / "issues" / "friendly_tiny_issues.json",
+            config=cfg,
+        )
+        pr_payload = {**pr_payload, "research_brief_id": brief.id}
         rules_engine = DefaultRulesEngine()
         errors = rules_engine.validate_pr_draft(pr_payload, rules)
         orch.transition(task.id, TaskState.AWAITING_PR_APPROVAL, reason="self-review-pass")
         draft_id = None
-        if not errors:
+        if not errors and brief.passed:
             draft_id = gw.enqueue(
                 OutwardActionDraft(
                     kind="pr",

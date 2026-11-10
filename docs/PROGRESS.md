@@ -54,3 +54,19 @@ demo OK (no outward network writes)
 ### Invariant tests
 
 `tests/test_invariants.py` + `tests/test_invariant_imports.py` cover invariants 1–10 by name (`test_inv1`…`test_inv10`).
+
+## Factory extensions
+
+- [x] SuperPlane-style factory board + `oss-contribution` line
+- [x] Paperclip-inspired `analyze` / `await_analysis_approval`
+- [x] Strix-inspired `quality_analysis` (severity + SARIF) before PR draft
+- [x] n8n-inspired `workflow/` engine driving OSS contribution graph (IF + wait)
+- [x] Khoj + last30days-inspired `research/` before every action + gateway gate
+- [x] OpenSandbox-inspired sandbox engine (sessions, vault, egress; default backend)
+
+```
+$ make lint && make test && make demo
+Success: no issues found in 65 source files
+64 passed in 18.05s
+demo OK — workflow success; work order in Review lane
+```

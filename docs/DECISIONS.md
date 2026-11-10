@@ -9,6 +9,7 @@ Conservative defaults chosen when the mission was ambiguous. One line each.
 | 2026-11-10 | Hand-rolled durable state machine (not LangGraph) | Easier to unit/property-test illegal transitions and timeouts |
 | 2026-11-10 | SQLite + SQLAlchemy + Alembic; schema portable to Postgres | PRD says SQLite first; migrations keep portability |
 | 2026-11-10 | Sandbox: Podman runner first; `SandboxRunner` Protocol for a future KVM backend | Matches target environment; interface allows upgrade without rewrite |
+| 2026-11-10 | Adopt OpenSandbox-inspired session lifecycle (create/commands/files/destroy), credential vault, egress policy; default backend `opensandbox` local runtime (Fake offline, optional Podman); do not vendor OpenSandbox server | Unified agent sandbox API; remote OpenSandbox adapter can plug in later via `remote_domain` |
 | 2026-11-10 | Model access behind `ModelProvider` Protocol with stub + OpenAI-compatible HTTP adapter | No vendor lock; unit tests use stub; real keys only at runtime |
 | 2026-11-10 | Sponsor UI: FastAPI localhost-only + Typer CLI for approvals | PRD allows CLI first then small local web; both needed for DoD |
 | 2026-11-10 | Fixture project: synthetic tiny Python package under `fixtures/projects/` | Offline demo/eval without depending on a live OSS repo |
@@ -21,3 +22,6 @@ Conservative defaults chosen when the mission was ambiguous. One line each.
 | 2026-11-10 | Add Paperclip-inspired `analyze` + `await_analysis_approval` before contribution steps | Goal alignment, budget, governance, readiness gate before coding agents run |
 | 2026-11-10 | Offline demo auto-approves analysis when recommendation=go (`goal.demo_auto_approve_analysis`) | Keeps `make demo` offline; production leaves the gate for sponsor approval |
 | 2026-11-10 | Strix-inspired `quality_analysis` after verify: static secrets/dangerous-API/size/tests gate with SARIF; block at severity≥high by default; do not vendor Strix CLI | Offline deterministic gate; optional `prefer_strix_cli` later via Protocol |
+| 2026-11-10 | n8n-inspired `workflow/` engine (nodes, connections, IF/wait, items); factory line steps derived from workflow main path; do not vendor n8n | Graph + branching without Node.js dependency; SuperPlane board stays the sponsor UX |
+| 2026-11-10 | Khoj + last30days-inspired `research/`: local corpus + engagement-scored brief; `project_research` workflow node; research before every factory step; gateway requires `research_brief_id`; do not vendor Khoj/last30days | Offline project grounding before acting; outward writes blocked without research |
+| 2026-11-10 | OpenSandbox-inspired engine is default `SandboxConfig.backend=opensandbox`; Fake remains available for unit escape tests | Demo/offline path stays network-free; escape invariants unchanged |

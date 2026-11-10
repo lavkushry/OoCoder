@@ -43,6 +43,8 @@ def _orch(
     cfg: AppConfig | None = None,
 ) -> tuple[Orchestrator, GitHubGatewayService]:
     cfg = cfg or AppConfig()
+    # M2 suite covers gateway gates other than research (see test_research.py).
+    cfg.research.require_before_action = False
     audit = FileAndDbAuditLog(tmp_path / "audit.jsonl", session)
     return Orchestrator(session, cfg, audit), GitHubGatewayService(session, cfg, audit)
 

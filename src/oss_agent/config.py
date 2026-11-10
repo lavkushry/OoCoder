@@ -40,7 +40,17 @@ class PolicyConfig(BaseModel):
 
 
 class SandboxConfig(BaseModel):
-    backend: Literal["podman", "fake"] = "podman"
+    """
+    OpenSandbox-inspired isolation settings.
+
+    ``opensandbox`` is the default engine (session lifecycle + vault + egress).
+    Local runtime uses Fake isolation offline; set prefer_podman=True when Podman
+    is available. Optional future: remote OpenSandbox server URL.
+    """
+
+    backend: Literal["opensandbox", "podman", "fake"] = "opensandbox"
+    image: str = "docker.io/library/python:3.12-slim"
+    prefer_podman: bool = False
     memory_mb: int = Field(default=2048, ge=256)
     cpus: float = Field(default=2.0, gt=0)
     timeout_sec: int = Field(default=1800, ge=30)
@@ -53,6 +63,9 @@ class SandboxConfig(BaseModel):
         ]
     )
     work_root: Path = Path("/tmp/oss-agent-sandbox")
+    # Optional remote OpenSandbox control plane (unused by local runtime).
+    remote_domain: str | None = None
+    remote_protocol: Literal["http", "https"] = "http"
 
 
 class ModelConfig(BaseModel):
@@ -94,6 +107,24 @@ class QualityConfig(BaseModel):
     write_sarif: bool = True
 
 
+class ResearchConfig(BaseModel):
+    """
+    Khoj + last30days-inspired project research before every action.
+
+    Offline corpus retrieval by default; no network writes from the engine.
+    """
+
+    enabled: bool = True
+    # Refuse gateway enqueue / factory step advance without a passing brief.
+    require_before_action: bool = True
+    window_days: int = Field(default=30, ge=1, le=365)
+    max_hits: int = Field(default=12, ge=1)
+    require_min_hits: int = Field(default=1, ge=0)
+    use_local_corpus: bool = True
+    use_issue_signals: bool = True
+    use_project_memory: bool = True
+
+
 class StateTimeouts(BaseModel):
     """Wall-clock timeouts in seconds per task state."""
 
@@ -132,6 +163,7 @@ class AppConfig(BaseSettings):
     models: ModelConfig = Field(default_factory=ModelConfig)
     goal: GoalConfig = Field(default_factory=GoalConfig)
     quality: QualityConfig = Field(default_factory=QualityConfig)
+    research: ResearchConfig = Field(default_factory=ResearchConfig)
     timeouts: StateTimeouts = Field(default_factory=StateTimeouts)
     github_credentials_file: Path | None = None
 
