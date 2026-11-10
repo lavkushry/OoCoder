@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   applyGrokEdits,
   assertSafeFullFileWrite,
+  buildRepoContext,
   formatGrokHttpError,
   grokApiKey,
   parseGrokEdits,
@@ -79,6 +80,19 @@ test("formatGrokHttpError surfaces string and object error bodies", () => {
     /Unauthorized/,
   );
   assert.match(formatGrokHttpError(400, { error: "x" }), /xAI Console key/);
+});
+
+test("buildRepoContext excerpts paths mentioned with line numbers", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "oocoder-ctx-"));
+  mkdirSync(join(cwd, "src"), { recursive: true });
+  const lines = Array.from({ length: 40 }, (_, i) => `code_${i}`);
+  writeFileSync(join(cwd, "src/quicklist.c"), lines.join("\n"), "utf8");
+  const ctx = buildRepoContext(
+    cwd,
+    "bug in src/quicklist.c:20 — use quicklistDecompressNodeForUse",
+  );
+  assert.match(ctx, /FILE src\/quicklist\.c/);
+  assert.match(ctx, /code_19/);
 });
 
 test("grokApiKey prefers xai- Console keys over a stale GROK_API_KEY", () => {

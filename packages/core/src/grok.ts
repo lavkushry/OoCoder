@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, normalize, resolve } from "node:path";
+import { dirname, join, normalize, resolve } from "node:path";
 
 /** Full-file write (new files or tiny files only). */
 export interface GrokFileEdit {
@@ -226,6 +226,54 @@ export async function grokChat(options: {
   };
 }
 
+/**
+ * Pull repo-relative paths (optionally with :line) out of issue text and attach
+ * exact file excerpts so edits[].old can be copied verbatim.
+ */
+export function buildRepoContext(cwd: string, text: string, maxChars = 24_000): string {
+  const mentions = new Map<string, Set<number>>();
+  const re = /(?<![A-Za-z0-9_/.-])((?:src|deps|tests|lib|include|modules|utils|tools)\/[\w./-]+\.[ch](?:pp|xx)?):?(\d+)?/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const rel = match[1]!;
+    const line = match[2] ? Number(match[2]) : undefined;
+    if (!mentions.has(rel)) mentions.set(rel, new Set());
+    if (line && Number.isFinite(line)) mentions.get(rel)!.add(line);
+  }
+  if (mentions.size === 0) return "";
+
+  const chunks: string[] = [];
+  let used = 0;
+  for (const [rel, lines] of mentions) {
+    const abs = join(cwd, rel);
+    if (!existsSync(abs)) continue;
+    const content = readFileSync(abs, "utf8");
+    const all = content.split("\n");
+    const windows: Array<{ start: number; end: number }> = [];
+    if (lines.size === 0) {
+      windows.push({ start: 1, end: Math.min(all.length, 80) });
+    } else {
+      for (const line of [...lines].sort((a, b) => a - b)) {
+        windows.push({
+          start: Math.max(1, line - 25),
+          end: Math.min(all.length, line + 25),
+        });
+      }
+    }
+    for (const win of windows) {
+      const body = all
+        .slice(win.start - 1, win.end)
+        .map((row, i) => `${String(win.start + i).padStart(5, " ")}|${row}`)
+        .join("\n");
+      const block = `FILE ${rel} lines ${win.start}-${win.end}\n${body}`;
+      if (used + block.length > maxChars) return chunks.join("\n\n");
+      chunks.push(block);
+      used += block.length;
+    }
+  }
+  return chunks.join("\n\n");
+}
+
 export async function implementWithGrok(options: {
   cwd: string;
   prompt: string;
@@ -235,17 +283,37 @@ export async function implementWithGrok(options: {
   if (!apiKey) {
     throw new Error("GROK_API_KEY or XAI_API_KEY is not set");
   }
-  const chat = await grokChat({
-    apiKey,
-    model: options.model ?? process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL,
-    prompt: options.prompt,
-  });
-  const plan = parseGrokEdits(chat.text);
-  const files = applyGrokEdits(options.cwd, plan);
-  return {
-    summary: plan.summary,
-    files,
-    promptTokens: chat.promptTokens,
-    completionTokens: chat.completionTokens,
+  const model = options.model ?? process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL;
+  const context = buildRepoContext(options.cwd, options.prompt);
+  const basePrompt = context
+    ? `${options.prompt}\n\n--- Repo context (copy edits[].old EXACTLY from these excerpts; include enough lines to be unique) ---\n${context}`
+    : options.prompt;
+
+  let promptTokens = 0;
+  let completionTokens = 0;
+
+  const attempt = async (prompt: string) => {
+    const chat = await grokChat({ apiKey, model, prompt });
+    promptTokens += chat.promptTokens;
+    completionTokens += chat.completionTokens;
+    const plan = parseGrokEdits(chat.text);
+    const files = applyGrokEdits(options.cwd, plan);
+    return { summary: plan.summary, files };
   };
+
+  try {
+    const first = await attempt(basePrompt);
+    return { ...first, promptTokens, completionTokens };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const retryable =
+      /old_string not found|matched \d+ times|destructive rewrite|Edit target does not exist/i.test(
+        msg,
+      );
+    if (!retryable) throw err;
+    const second = await attempt(
+      `${basePrompt}\n\n--- Previous plan failed ---\n${msg}\nReturn a corrected JSON plan. For edits[].old, copy characters exactly from the repo context above.`,
+    );
+    return { ...second, promptTokens, completionTokens };
+  }
 }
