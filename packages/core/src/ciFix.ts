@@ -19,7 +19,7 @@ import {
 } from "./github.js";
 import { buildRepairPrompt, implementIssue } from "./implement.js";
 import { oocoderHome } from "./paths.js";
-import { diffStats, pushBranch } from "./git.js";
+import { diffStats, ensureRepairWorktree, pushBranch } from "./git.js";
 import { runBestEffortVerify } from "./quality.js";
 import { runOk } from "./shell.js";
 import {
@@ -297,7 +297,33 @@ export async function runCiFix(options: {
     diagnostics: diagText,
   });
 
-  const cwd = options.cwd ?? process.cwd();
+  let cwd: string;
+  try {
+    cwd = await ensureRepairWorktree({
+      owner: options.owner,
+      repo: options.repo,
+      number: pr.number,
+      branch: pr.headRef,
+      headOwner: pr.headOwner || options.login,
+      home,
+      explicitCwd: options.cwd,
+    });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    logEvent(
+      "ci_fix_no_worktree",
+      pr.htmlUrl,
+      { reason },
+      home,
+    );
+    return {
+      ok: false,
+      reason: "no_worktree",
+      branch: pr.headRef,
+      pr: pr.htmlUrl,
+    };
+  }
+
   const repair =
     options.repair ??
     (async () => {

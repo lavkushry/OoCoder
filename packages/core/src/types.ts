@@ -24,6 +24,17 @@ export interface DashboardConfig {
   historyDays: number;
 }
 
+export interface CampaignPolicyConfig {
+  /** Lifetime PR goal (e.g. 50). */
+  targetPrs: number;
+  /** Max PRs per `oocoder campaign run`. */
+  batchSize: number;
+  /** Discover pool size = batchSize * discoverMultiplier. */
+  discoverMultiplier: number;
+  /** Strip Cursor/OoCoder footers from open PR bodies after runs. */
+  scrubBranding: boolean;
+}
+
 export type CiOutcome =
   | "patched"
   | "tests_failed"
@@ -50,6 +61,7 @@ export interface PolicyConfig {
   ciFix: CiFixConfig;
   telemetry: TelemetryConfig;
   dashboard: DashboardConfig;
+  campaign: CampaignPolicyConfig;
 }
 
 export interface IssueRef {
@@ -75,7 +87,15 @@ export interface CandidateRecord {
   title: string;
   labels: string;
   score: number;
-  status: "discovered" | "discussed" | "working" | "pr_opened" | "failed" | "skipped";
+  status:
+    | "discovered"
+    | "discussed"
+    | "working"
+    | "pr_opened"
+    | "merged"
+    | "closed"
+    | "failed"
+    | "skipped";
   discoveredAt: string;
   updatedAt: string;
   notes: string | null;
@@ -87,6 +107,8 @@ export interface WorkOptions {
   dryRun?: boolean;
   skipPr?: boolean;
   skipDiscuss?: boolean;
+  /** Skip compile/test verify gate (local smoke / when make test is too heavy). */
+  skipVerify?: boolean;
   runtime?: RuntimeMode;
   model?: string;
   maxBudgetUsd?: number;

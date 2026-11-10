@@ -49,6 +49,17 @@ cp -a /var/lib/oss-agent/audit /var/backups/oss_agent_audit
 
 Restore by stopping services, replacing the DB file, and starting again.
 
+## OoCoder DE campaign 24×7 (Linux)
+
+For continuous allowlist monitoring (sync / scrub / monitor / fixci):
+
+See [CAMPAIGN_LINUX_24X7.md](CAMPAIGN_LINUX_24X7.md).
+
+```bash
+sudo systemctl enable --now oocoder-campaign.timer
+journalctl -u oocoder-campaign.service -f
+```
+
 ## Add a project
 
 See [ADD_PROJECT.md](ADD_PROJECT.md).

@@ -1,0 +1,29 @@
+[Unit]
+Description=OoCoder DE campaign continuous watch (long-running)
+Documentation=file:///opt/oocoder/docs/CAMPAIGN_LINUX_24X7.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=oocoder
+Group=oocoder
+WorkingDirectory=/opt/oocoder
+Environment=OOCODER_HOME=/var/lib/oocoder
+Environment=NODE_ENV=production
+Environment=WATCH_MAX_TICKS=0
+EnvironmentFile=-/etc/oocoder/campaign.env
+ExecStart=/opt/oocoder/deploy/systemd/campaign-run.sh
+Restart=always
+RestartSec=60
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/oocoder /opt/oocoder /var/log/oocoder
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

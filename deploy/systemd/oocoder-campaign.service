@@ -1,0 +1,29 @@
+[Unit]
+Description=OoCoder DE campaign watch tick (sync/scrub/monitor/fixci)
+Documentation=file:///opt/oocoder/docs/CAMPAIGN_LINUX_24X7.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# A full monitor pass walks every open allowlisted PR and can take several minutes.
+TimeoutStartSec=900
+User=oocoder
+Group=oocoder
+WorkingDirectory=/opt/oocoder
+Environment=OOCODER_HOME=/var/lib/oocoder
+Environment=NODE_ENV=production
+Environment=WATCH_MAX_TICKS=1
+EnvironmentFile=-/etc/oocoder/campaign.env
+ExecStart=/opt/oocoder/deploy/systemd/campaign-run.sh
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/oocoder /opt/oocoder /var/log/oocoder
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

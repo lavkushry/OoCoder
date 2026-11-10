@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { runCiFix, standDownBody, type CiApi } from "../ciFix.js";
-import { closeDb, ciAttemptedSha, listCiAttempts, recordCiAttempt } from "../state.js";
 import { pushArgs } from "../git.js";
+import { closeDb, ciAttemptedSha, listCiAttempts, recordCiAttempt } from "../state.js";
 
 function pull(overrides: Record<string, unknown> = {}) {
   return {
@@ -61,6 +61,7 @@ const home = mkdtempSync(join(tmpdir(), "oocoder-fix-"));
 test("red PR gets one non-force push on the same branch", async () => {
   const pushes: string[] = [];
   const fake = api();
+  const wt = mkdtempSync(join(tmpdir(), "oocoder-wt-"));
   const result = await runCiFix({
     owner: "acme",
     repo: "app",
@@ -69,7 +70,7 @@ test("red PR gets one non-force push on the same branch", async () => {
     home,
     api: fake,
     nowMs: Date.parse("2026-01-01T01:00:00Z"),
-    cwd: "/tmp/wt",
+    cwd: wt,
     async repair() {
       return {
         changedFiles: ["src/parser.py"],
@@ -92,6 +93,7 @@ test("red PR gets one non-force push on the same branch", async () => {
 
 test("blast radius consumes an attempt and does not push", async () => {
   const pushes: string[] = [];
+  const wt = mkdtempSync(join(tmpdir(), "oocoder-wt-"));
   const result = await runCiFix({
     owner: "acme",
     repo: "app",
@@ -110,6 +112,7 @@ test("blast radius consumes an attempt and does not push", async () => {
       }),
     ),
     nowMs: Date.parse("2026-01-01T01:00:00Z"),
+    cwd: wt,
     async repair() {
       return {
         changedFiles: ["a.py", "b.py", "c.py", "d.py"],
@@ -125,6 +128,32 @@ test("blast radius consumes an attempt and does not push", async () => {
   assert.equal(result.ok, false);
   assert.equal(pushes.length, 0);
   assert.ok(listCiAttempts(home).some((row) => row.outcome === "no_fix"));
+  closeDb();
+});
+
+test("CI repair fails closed when no worktree can be resolved", async () => {
+  const isolatedHome = mkdtempSync(join(tmpdir(), "oocoder-nowt-"));
+  const result = await runCiFix({
+    owner: "acme",
+    repo: "app",
+    number: 55,
+    login: "me",
+    home: isolatedHome,
+    api: api(
+      pull({
+        number: 55,
+        html_url: "https://github.com/acme/app/pull/55",
+        head: {
+          ref: "oocoder/fix-55",
+          sha: "sha-nowt",
+          repo: { owner: { login: "me" }, pushed_at: "2026-01-01T00:00:00Z" },
+        },
+      }),
+    ),
+    nowMs: Date.parse("2026-01-01T01:00:00Z"),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "no_worktree");
   closeDb();
 });
 

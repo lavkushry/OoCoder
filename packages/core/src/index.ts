@@ -17,3 +17,4 @@ export * from "./ciGate.js";
 export * from "./ciFix.js";
 export * from "./dashboard.js";
 export * from "./telemetry.js";
+export * from "./campaign.js";

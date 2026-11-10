@@ -3,6 +3,7 @@ import { fetchIssue, postIssueComment } from "./github.js";
 import {
   assertRateLimit,
   bumpRate,
+  hasDiscussedIssue,
   logEvent,
   updateCandidate,
 } from "./state.js";
@@ -23,21 +24,24 @@ export async function discussIssue(
     );
   }
 
-  if (!options.dryRun) {
-    assertRateLimit("comments", policy.rateLimits.maxCommentsPerDay, home);
-  }
-
+  const disclosure = policy.disclosure.trim();
   const body =
     options.message?.trim() ||
     [
       `Thanks for opening this issue. I'm looking into **${issue.title}** and will propose a fix if it fits the project's contribution guidelines.`,
-      "",
-      policy.disclosure.trim(),
+      ...(disclosure ? ["", disclosure] : []),
     ].join("\n");
 
   if (options.dryRun) {
     return { commentUrl: null, body, dryRun: true };
   }
+
+  // Idempotent: work retries must not spam the issue thread.
+  if (hasDiscussedIssue(issue.url, home)) {
+    return { commentUrl: null, body, dryRun: false };
+  }
+
+  assertRateLimit("comments", policy.rateLimits.maxCommentsPerDay, home);
 
   const commentUrl = await postIssueComment(
     issue.owner,

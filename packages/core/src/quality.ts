@@ -36,6 +36,22 @@ const VERIFY_CANDIDATES: Array<{ cmd: string; args: string[] }> = [
   { cmd: "cargo", args: ["test"] },
 ];
 
+/**
+ * Makefile verify strategy.
+ * Full `make test` on Redis-like trees cleans binaries and can run for hours.
+ * Default to compile-only `make`. Opt in with OOCODER_VERIFY_MAKE_TEST=1.
+ */
+export function makefileVerifyArgs(
+  env: NodeJS.ProcessEnv = process.env,
+): { args: string[]; command: string; timeoutMs: number } {
+  const wantFullTest = env.OOCODER_VERIFY_MAKE_TEST === "1";
+  return {
+    args: wantFullTest ? ["test"] : [],
+    command: wantFullTest ? "make test" : "make",
+    timeoutMs: wantFullTest ? 30 * 60 * 1000 : 15 * 60 * 1000,
+  };
+}
+
 export async function runBestEffortVerify(cwd: string): Promise<{
   ran: boolean;
   command: string | null;
@@ -61,11 +77,12 @@ export async function runBestEffortVerify(cwd: string): Promise<{
   }
 
   if (existsSync(join(cwd, "Makefile"))) {
-    const result = await run("make", ["test"], { cwd, timeoutMs: 10 * 60 * 1000 });
+    const { args, command, timeoutMs } = makefileVerifyArgs();
+    const result = await run("make", args, { cwd, timeoutMs });
     if (result.code === 0 || result.stdout || result.stderr) {
       return {
         ran: true,
-        command: "make test",
+        command,
         ok: result.code === 0,
         output: (result.stdout + "\n" + result.stderr).trim(),
       };

@@ -42,9 +42,7 @@ const PolicySchema = z.object({
   disclosure: z.string().default(
     "---\n*Posted by OoCoder, an AI coding agent. A human maintains the allowlist and policy.*",
   ),
-  prFooter: z.string().default(
-    "---\n### OoCoder\nThis PR was prepared by an AI agent. Please review carefully.",
-  ),
+  prFooter: z.string().default(""),
   ciFix: z
     .object({
       enabled: z.boolean().default(true),
@@ -73,6 +71,19 @@ const PolicySchema = z.object({
       historyDays: z.number().default(30),
     })
     .default({ refreshPrStates: true, historyDays: 30 }),
+  campaign: z
+    .object({
+      targetPrs: z.number().default(50),
+      batchSize: z.number().default(10),
+      discoverMultiplier: z.number().default(5),
+      scrubBranding: z.boolean().default(true),
+    })
+    .default({
+      targetPrs: 50,
+      batchSize: 10,
+      discoverMultiplier: 5,
+      scrubBranding: true,
+    }),
 });
 
 function loadYamlFile(filePath: string): unknown {
@@ -112,6 +123,14 @@ export function isAllowed(
     return true;
   }
   return false;
+}
+
+/** Daemon/work selection: keep only issues that pass the allowlist gate. */
+export function filterAllowlistedIssues<T extends { owner: string; repo: string }>(
+  issues: T[],
+  allowlist: AllowlistConfig = loadAllowlist(),
+): T[] {
+  return issues.filter((issue) => isAllowed(issue.owner, issue.repo, allowlist));
 }
 
 export function ensureHomeInitialized(home = oocoderHome()): {

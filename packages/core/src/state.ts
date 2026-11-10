@@ -203,6 +203,18 @@ export function listCandidates(
   return rows.map(rowToCandidate);
 }
 
+/** True if we already logged a discuss event for this issue URL. */
+export function hasDiscussedIssue(issueUrl: string, home = oocoderHome()): boolean {
+  const db = getDb(home);
+  const row = db
+    .prepare(
+      `SELECT 1 AS ok FROM events
+       WHERE kind = 'discuss' AND payload LIKE ? LIMIT 1`,
+    )
+    .get(`%${issueUrl}%`) as { ok: number } | undefined;
+  return Boolean(row);
+}
+
 export function logEvent(
   kind: string,
   ref: string | null,
