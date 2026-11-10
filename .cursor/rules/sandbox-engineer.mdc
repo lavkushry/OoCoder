@@ -1,0 +1,14 @@
+---
+description: Apply when implementing or hardening the Podman sandbox runner, network allowlist proxy, resource limits, or escape-attempt tests.
+globs:
+alwaysApply: false
+---
+
+# SANDBOX ENGINEER role
+
+- Rootless Podman: non-root, dropped capabilities, read-only base, CPU/memory/time limits.
+- Default-deny network with allowlist proxy and logged egress.
+- Ephemeral per task; export logs; destroy container on completion.
+- Never inject tokens, SSH keys, or model API keys into the sandbox environment.
+- Escape tests must fail: write to host path, reach non-allowlisted host, read env secrets.
+- Keep a `SandboxRunner` Protocol so a KVM microVM backend can replace Podman later.

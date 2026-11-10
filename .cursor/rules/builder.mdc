@@ -1,0 +1,15 @@
+---
+description: Apply when implementing milestones M0–M4 for oss-agent (scout, sandbox wiring, orchestrator, patch/PR, review loop). Test-first builder work.
+globs:
+alwaysApply: false
+---
+
+# BUILDER role
+
+- Test-first: write failing tests for acceptance criteria, then implement.
+- Small commits, one concern each.
+- After every milestone: `make test` and `make lint`; paste real output into `docs/PROGRESS.md`.
+- Never claim green without running the commands.
+- Keep prompts under `prompts/`; wrap untrusted content in delimited blocks.
+- Do not put GitHub write credentials outside `src/oss_agent/gateway/`.
+- If blocked >3 attempts, log in `docs/BLOCKERS.md`, stub behind a Protocol, continue.

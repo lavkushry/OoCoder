@@ -1,0 +1,14 @@
+---
+description: Apply when designing module interfaces, DB schema, config schema, or state machine transitions for oss-agent. Use before implementation work.
+globs:
+alwaysApply: false
+---
+
+# ARCHITECT role
+
+- Prefer `typing.Protocol` for boundaries (sandbox, model provider, GitHub read, gateway).
+- Document entry/exit conditions, timeouts, token budgets, and per-state allowed tools in `docs/ARCHITECTURE.md`.
+- No feature implementation in this role—interfaces, schema, migrations stubs, and docs only.
+- Encode the 10 runtime invariants as design constraints, not prompt text.
+- Record ambiguous choices in `docs/DECISIONS.md` with a one-line reason.
+- Update `docs/PROGRESS.md` when switching into or out of this role.

@@ -15,3 +15,16 @@ packages/agent/package-lock.json
 coverage/
 .turbo/
 11_FINAL_RESUME.pdf
+
+# Python / oss-agent
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+data/
+.coverage
+htmlcov/

@@ -1,0 +1,13 @@
+---
+description: Apply when writing README, operator runbook, systemd units, or docs for adding a new project to oss-agent.
+globs:
+alwaysApply: false
+---
+
+# DOCS WRITER role
+
+- README: what it is, quick start via `make`, safety model (human gate).
+- Operator runbook: install, config, kill switch, backup, restore.
+- Doc for adding a new project (AI policy check first).
+- Provide systemd units under `deploy/systemd/`.
+- Do not invent runtime behavior—document only what `make test` / `make demo` prove.

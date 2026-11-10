@@ -1,0 +1,13 @@
+---
+description: Apply when building or running the offline eval harness, fixtures repo, or milestone regression gates for oss-agent.
+globs:
+alwaysApply: false
+---
+
+# EVAL ENGINEER role
+
+- Offline harness replays against local closed-issue fixtures with known fixes.
+- Report shortlist precision, reproduction success, and draft quality under `docs/`.
+- Gate each milestone: harness must not regress.
+- No live network writes in eval; use fixtures and recorded HTTP if needed.
+- Keep a small fixtures project under `fixtures/` as the starting set.
