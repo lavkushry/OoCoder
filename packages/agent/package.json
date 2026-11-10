@@ -1,0 +1,22 @@
+{
+  "name": "@oocoder/agent",
+  "private": true,
+  "type": "module",
+  "description": "OoCoder Agent SDK bot — GitHub follow-ups, scheduled discovery, evals",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "validate": "agent-sdk validate --dir .",
+    "dev": "agent-sdk serve --dir . --mode single --dev",
+    "info": "agent-sdk info --dir . --json",
+    "eval": "agent-sdk eval --dir .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@grok/agent-sdk": "^0.6.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "6.0.3"
+  }
+}

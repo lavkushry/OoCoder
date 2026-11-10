@@ -1,0 +1,25 @@
+{
+  "name": "@oocoder/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "oocoder": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsc -p tsconfig.json --watch",
+    "oocoder": "node ./dist/bin.js"
+  },
+  "dependencies": {
+    "@oocoder/core": "workspace:*",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

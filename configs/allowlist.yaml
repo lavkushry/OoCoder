@@ -1,0 +1,13 @@
+# Repos and orgs OoCoder is allowed to touch.
+# Start narrow — expand only after reviewing contribution quality.
+
+orgs: []
+
+# Examples:
+# - octocat/Hello-World
+# - your-org/your-sandbox-repo
+repos: []
+
+# If both orgs and repos are empty, discover still runs against GitHub search
+# but work/discuss will refuse anything not explicitly allowlisted.
+strict: true

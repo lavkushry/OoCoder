@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+dist/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+.oocoder/
+.oocoder-local/
+packages/agent/.agent-sdk/
+packages/agent/package-lock.json
+coverage/
+.turbo/
+11_FINAL_RESUME.pdf

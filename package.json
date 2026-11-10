@@ -1,0 +1,18 @@
+{
+  "name": "oocoder",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Autonomous OSS contribution agent — discover, discuss, fix, and open PRs",
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --filter @oocoder/core build && pnpm --filter @oocoder/cli build",
+    "oocoder": "pnpm --filter @oocoder/cli exec node ./dist/bin.js",
+    "typecheck": "pnpm --filter @oocoder/core typecheck && pnpm --filter @oocoder/cli typecheck",
+    "test": "pnpm --filter @oocoder/core test",
+    "agent:validate": "npm --prefix packages/agent run validate",
+    "agent:dev": "npm --prefix packages/agent run dev"
+  }
+}

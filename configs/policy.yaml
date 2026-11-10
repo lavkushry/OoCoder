@@ -1,0 +1,45 @@
+# Safety rails for fully autonomous operation.
+
+labels:
+  - "good first issue"
+  - "help wanted"
+  - "documentation"
+  - "bug"
+
+quality:
+  maxFilesChanged: 20
+  maxLinesChanged: 400
+
+rateLimits:
+  maxIssuesPerDay: 5
+  maxPrsPerDay: 3
+  maxCommentsPerDay: 10
+
+budget:
+  # Soft hint for Cursor spend per work run (USD). Enforced best-effort via usage API when available.
+  maxUsdPerRun: 5.0
+
+disclosure: |
+  ---
+  *This message was posted by [OoCoder](https://github.com/oocoder), an AI coding agent assisting with open-source contributions. A human maintains the allowlist and policy.*
+
+prFooter: |
+  ---
+  ### OoCoder
+  This PR was prepared by an AI agent (OoCoder) using Cursor.
+  Please review carefully. Maintainer feedback is welcome — the agent can iterate on review comments.
+
+ciFix:
+  enabled: true
+  maxAttemptsPerPr: 2
+  maxFixesPerRun: 1
+  minMinutesAfterPush: 10
+  maxFilesTouched: 3
+  maxLogBytes: 60000
+
+telemetry:
+  enabled: true
+
+dashboard:
+  refreshPrStates: true
+  historyDays: 30
